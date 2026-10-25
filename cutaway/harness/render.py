@@ -56,7 +56,7 @@ def sweeps_for(fig) -> list[tuple[str, dict | None]]:
 
 
 async def render_figure(page, fig, out: dict[str, Path], logs: list[dict], run_id: str | None) -> list[dict]:
-    el = page.locator(f'[data-figure="{fig.id}"]').first
+    el = page.locator(f'figure[data-figure="{fig.id}"], #fig-{fig.id}').first
     await el.scroll_into_view_if_needed()
     await page.evaluate("window.__cutaway.pauseAll()")
     await page.wait_for_timeout(100)
@@ -102,6 +102,7 @@ ENT_WORDS_JS = """
 async def scroll_capture(page, out: dict[str, Path]) -> None:
     words = await page.evaluate(ENT_WORDS_JS)
     (out["render"] / "ent_words.json").write_text(json.dumps(words, indent=1))
+    (out["render"] / "page_text.txt").write_text(await page.evaluate("document.body.innerText"))
     await page.evaluate("window.scrollTo(0, 0); window.__cutaway.playAll()")
     await page.screenshot(path=str(out["render"] / "page.png"), full_page=True)
     height = await page.evaluate("document.documentElement.scrollHeight - window.innerHeight")
@@ -131,25 +132,48 @@ async def render_version(version_dir: Path, run_dir: Path, version: int, spec: S
         queue.put_nowait(f)
 
     with serve(version_dir) as base:
-        async with browser() as b:
-            async def worker(k: int):
-                page, logs = await open_page(b, base + "/index.html")
-                await page.wait_for_function("!!window.__cutaway", timeout=15_000)
-                all_logs[f"page{k}"] = logs
-                while not queue.empty():
-                    fig = queue.get_nowait()
-                    try:
-                        results.extend(await render_figure(page, fig, out, logs, run_id))
-                    except Exception as e:
-                        events.emit(run_id, "error", stage="render", msg=f"render {fig.id} failed: {e!r}"[:500])
-                        results.append({"figure": fig.id, "sweep": "default", "error": repr(e)[:500]})
-                await page.close()
-
-            n = min(PARALLEL_PAGES, len(spec.figures))
-            await asyncio.gather(*(worker(k) for k in range(n)))
+        async def fresh_page(b, k: int):
             page, logs = await open_page(b, base + "/index.html")
+            page.on("crash", lambda *_: logs.append({"type": "crash", "text": f"page{k} renderer crashed"}))
             await page.wait_for_function("!!window.__cutaway", timeout=15_000)
-            await scroll_capture(page, out)
+            all_logs.setdefault(f"page{k}", [])
+            return page, logs
+
+        async def worker(k: int):
+            """Own browser per worker, so one GPU/renderer crash can't take the others down.
+            After a crash: relaunch and retry that figure once."""
+            while not queue.empty():
+                async with browser() as b:
+                    page, logs = await fresh_page(b, k)
+                    while not queue.empty():
+                        fig = queue.get_nowait()
+                        try:
+                            results.extend(await render_figure(page, fig, out, logs, run_id))
+                        except Exception as e:
+                            closed = "closed" in str(e).lower() or "crash" in str(e).lower()
+                            retry = closed and fig.id not in retried
+                            events.emit(run_id, "error", stage="render",
+                                        msg=f"render {fig.id} failed{' (browser closed; retrying)' if retry else ''}: {e!r}"[:500])
+                            if retry:
+                                retried.add(fig.id)
+                                queue.put_nowait(fig)
+                                break          # relaunch the browser
+                            results.append({"figure": fig.id, "sweep": "default", "error": repr(e)[:500]})
+                    all_logs[f"page{k}"] += logs
+                    try:
+                        await page.close()
+                    except Exception:
+                        pass
+
+        retried: set[str] = set()
+        n = min(PARALLEL_PAGES, len(spec.figures))
+        await asyncio.gather(*(worker(k) for k in range(n)))
+        async with browser() as b:
+            page, logs = await fresh_page(b, n)
+            try:
+                await scroll_capture(page, out)
+            except Exception as e:
+                events.emit(run_id, "error", stage="render", msg=f"scroll capture failed: {e!r}"[:300])
             all_logs["scroll"] = logs
         t_capture = time.time() - t0
 

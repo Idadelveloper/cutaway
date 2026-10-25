@@ -8,6 +8,7 @@ from cutaway.schemas import Spec
 from tests.test_spec_m2 import GOOD
 
 PAGE = """<!doctype html><html><body>
+<p>The <span class="ent" data-entity="outer_mic" data-figure="F1">outer mic</span> listens.</p>
 <figure id="fig-F1" data-figure="F1"><canvas width=200 height=100></canvas></figure>
 <script>
 const M = (t, c) => { const n = Math.sin(2*Math.PI*c.frequency_hz*t);

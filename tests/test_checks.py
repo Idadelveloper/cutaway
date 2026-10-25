@@ -114,3 +114,9 @@ def test_frame_time():
     slow = tr()
     slow.frame_ms = [80.0] * N
     assert common.check_frame_time({("F1", "default"): slow}, Ids("C"))
+
+
+def test_raw_markup():
+    assert common.check_raw_markup("residual = 2|sin(pi f t)| costs $5", Ids("C")) == []
+    fs = common.check_raw_markup(r"error: $\phi = 360^\circ \times f$ and \frac{a}{b}", Ids("C"))
+    assert fs and "unrendered LaTeX" in fs[0].what

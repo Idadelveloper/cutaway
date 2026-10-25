@@ -11,3 +11,4 @@ pytest
 pypdf
 trafilatura
 python-multipart
+pillow

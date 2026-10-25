@@ -40,6 +40,9 @@ Reproduce the *qualities* of a great long-form interactive engineering article, 
 - Controls under each figure: labeled range sliders with live value + unit, toggle buttons for on/off, a per-figure play/pause button. Controls are plain HTML, large enough to use on a phone.
 - A global "pause all animations" link fixed in a corner.
 
+## Equations
+- No LaTeX and no math libraries. Write equations as HTML: `<var>`, `<sub>`, `<sup>`, `&pi;`, `&Delta;`, `&middot;`, e.g. `2&middot;|sin(&pi;&middot;<var>f</var>&middot;&Delta;<var>t</var>)|`. Never leave `$...$` or backslash commands in the text.
+
 ## Performance
 - **One shared WebGL renderer** (`preserveDrawingBuffer: true`) on a fixed full-window canvas behind the page; each visible figure draws into its own viewport/scissor rect matching its placeholder element.
 - `IntersectionObserver`: only on-screen figures animate.

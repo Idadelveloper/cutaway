@@ -32,3 +32,4 @@
 - Reference videos in the watched review use `{"type": "video", "uri": ..., "processing": {"start_offset": "60s", "end_offset": "90s"}}`
   to send only the cited moment.
 - Render harness: ~70 ms per captured frame; 4 pages in parallel; raw frames deleted after ffmpeg, keyframes kept.
+- `make serve` reloads only on changes in cutaway/, server/ and web/. Watching the whole project (runs/, cache/) made the dev server hang while a run was writing files.

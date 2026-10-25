@@ -26,4 +26,7 @@ def test_render(tmp_path):
         assert (run / "clips" / "v1" / name).stat().st_size > 0
     assert (run / "render" / "v1" / "scroll.mp4").exists() and (run / "render" / "v1" / "page.png").exists()
     assert (run / "keyframes" / "v1" / "F1_default_mid.jpg").exists()
+    from PIL import Image  # the clip must be the <figure>, not a colored word that shares data-figure
+    w, h = Image.open(run / "keyframes" / "v1" / "F1_default_mid.jpg").size
+    assert h >= 100, (w, h)
     assert not (run / "frames" / "v1").exists()                     # raw frames cleaned up

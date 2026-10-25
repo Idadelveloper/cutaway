@@ -31,6 +31,8 @@ def run_checks(spec: Spec, run_dir: Path, version: int) -> list[Finding]:
     fs += common.check_visibility(spec, traces, ids)
     fs += common.check_color_words(spec, _load(rdir / "ent_words.json", []), ids)
     fs += common.check_frame_time(traces, ids)
+    if (rdir / "page_text.txt").exists():
+        fs += common.check_raw_markup((rdir / "page_text.txt").read_text(), ids)
 
     laws = {l.id: l for l in spec.laws}
     lids = Ids(f"v{version}-L")

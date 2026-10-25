@@ -144,3 +144,16 @@ def check_frame_time(traces: dict[tuple[str, str], Trace], ids: Ids) -> list[Fin
                                evidence=f"{fig}_{sweep}: max {max(tr.frame_ms):.0f} ms",
                                fix_hint="reuse geometry/materials; avoid per-frame allocation"))
     return out
+
+
+RAW_TEX = re.compile(r"\$[^$\n]{0,200}\\[a-zA-Z]+[^$\n]{0,200}\$|\\(frac|sqrt|cdot|circ|pi|Delta|phi|times)\b")
+
+
+def check_raw_markup(page_text: str, ids: Ids) -> list[Finding]:
+    """Unrendered LaTeX in the visible text (the page loads no math renderer)."""
+    hits = [m.group(0) for m in RAW_TEX.finditer(page_text)]
+    if not hits:
+        return []
+    return [Finding(id=ids(), layer="interaction", severity="medium", figure=None, time=None,
+                    what=f"unrendered LaTeX in the text ({len(hits)} places)", evidence="; ".join(hits[:4])[:500],
+                    fix_hint="write equations as HTML (var/sub/sup and entities such as &pi; &Delta;), no $...$")]

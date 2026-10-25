@@ -18,7 +18,7 @@ all:
 score:
 	$(PY) -m cutaway.scoring $(RUN)
 serve:
-	$(PY) -m uvicorn server.main:app --port 8000 --reload
+	$(PY) -m uvicorn server.main:app --port 8000 --reload --reload-dir cutaway --reload-dir server --reload-dir web
 baselines:
 	$(PY) scripts/baselines.py $(TOPIC)
 test:

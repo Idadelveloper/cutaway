@@ -130,12 +130,39 @@ runs/        # research/, spec.json, build/, v1/ v2/ ..., traces/, clips/, findi
 ## Status
 
 - [x] **M1: skeleton and API smoke test.** Verified with real calls: Argon 3.9 s, Flash 1.7 s, and a background call with `max_output_tokens` 262144 in 6.5 s.
-- [x] **M2: research → cited spec.** Discovery, ranking, full texts, quote verification and caching. Unit and fake-mode tests pass. First real run in progress.
-- [x] **M3: one-pass build + contract test.** Contract test verified on a passing and a failing page. Real build pending the spec.
-- [x] **M4: render harness.** Verified on a test page (traces, clips, keyframes, scroll clip). Real 10-figure timing pending.
-- [x] **M5: checks and review.** Each law and interaction check has a passing and a failing synthetic test. Fidelity and watched review are tested in fake mode.
-- [x] **M6: fix loop.** Triage, Fixer, stop/revert gate and scoring tested end to end in fake mode (v1 → v2).
-- [x] **M7: server, UI, proof section, change requests.** Endpoints tested in-process. The proof section is generated in the fake end-to-end test.
-- [x] **M8: baselines.** `scripts/baselines.py` written (A = prompt only, B = the full run's v1, Full = best version). Needs a finished real run.
+- [x] **M2: research → cited spec.** First real run took 21 min. Deep Research found 69 sources and SourceScout 10, merged to 50. 37 had usable text (12 papers, 12 articles, 5 patents, 5 videos, 3 manufacturer docs); 47 were skipped, including paywalled, blocked and over-the-cap sources. 2.57M tokens read; 0.58 h of video watched. The spec has 11 figures, 11 entities, 7 laws, 12 video facts and 3 resolved conflicts. **All 73 citation quotes were found verbatim in the source texts.** (The search discoverer timed out on this run; it has since been fixed.)
+- [x] **M3: one-pass build + contract test.** One background Argon call took 10.7 min and wrote 16 files (136k chars). The first contract test found 26 problems, mostly script errors; after one contract-fix round there were 0.
+- [x] **M4: render harness.** 11 figures, 41 clips, 4,920 frames in 68 s (4 workers, each with its own browser). Frame time p95 is under 1 ms in `advance()`.
+- [x] **M5: checks and review.** v1 had 46 findings: 27 watched (11 high), 18 interaction (wrong word colors, unrendered LaTeX), 1 law, 0 fidelity. The page reports exactly the cited params; note this doesn't prove the drawing uses them.
+- [x] **M6: fix loop.** v1 → v2 → v3 automatically. Weighted findings went 124 → 14 → 5 and high-severity 11 → 2 → 0. The loop stopped at v3.
+- [x] **M7: server, UI, proof section, change requests.** The real run is published at `/runs/20261025-120027-anc/final/`. Its proof section has research stats, the table above, 3 before/after fixes (F1, F6, F8) beside the cited YouTube moments, 3 conflicts and 25 cited sources. Change requests were tried on the real run through the server. "Make the chip 1 ms slower" was **rejected**: v4 had 18 high findings, because the law check measured a 0.905 residual, matching the predicted 2·|sin(π·150 Hz·1 ms)| = 0.91, and fidelity flagged the change against the cited 5 µs. So v3 stayed published. "Show on/off controls as On/Off toggles" was **accepted**: v5 had 0 high findings and weighted 4, and it is now the published version.
+- [x] **M8: baselines.** All three scored with the same checks (table below).
 
-The code for every milestone is written and tested in fake mode. The real end-to-end run (research → publish) is still going; this section will be updated with its results.
+### First real run (`20261025-120027-anc`): about 41 min from build to publish
+
+```
+version         contract           law   interaction      fidelity       watched   total  high  weighted
+v1                0 (0H)        1 (0H)       18 (0H)        0 (0H)      27 (11H)      46    11       124
+v2                0 (0H)        0 (0H)        0 (0H)        0 (0H)        4 (2H)       4     2        14
+v3                0 (0H)        0 (0H)        0 (0H)        0 (0H)        4 (0H)       4     0         5
+v4                0 (0H)        3 (3H)        0 (0H)        7 (7H)       17 (8H)      27    18       107   <- change request: chip 1 ms slower (rejected)
+v5                0 (0H)        0 (0H)        0 (0H)        0 (0H)        3 (0H)       3     0         4   <- change request: On/Off toggles (accepted, published)
+```
+
+### Baselines (same spec ids, same checks)
+
+```
+baseline        contract           law   interaction      fidelity       watched   total  high  weighted
+A prompt          1 (1H)        5 (4H)       18 (1H)        0 (0H)       25 (5H)      49    11       131
+B no loop         0 (0H)        1 (0H)       18 (0H)        0 (0H)      27 (11H)      46    11       124
+Full v3           0 (0H)        0 (0H)        0 (0H)        0 (0H)        4 (0H)       4     0         5
+```
+
+- A = topic prompt plus the bare figure, control, entity and probe ids (so the harness can drive it), one pass, no research, no contract-fix rounds.
+- B = research + cited spec + one-pass build: the full run's v1.
+- **The fix loop makes the biggest difference** (weighted 124 → 5).
+- **Research mainly improves the physics:** A's page fails 4 high-severity law checks (the anti-noise leaves 11% and 18% residual where the limit is 5%, and a control changes nothing). B has none.
+- Caveat: both pages darken the amber and grey word colors to keep text readable on white. The color-word check (tolerance 24 per RGB channel) counts that as a medium finding.
+
+Example fixes found by watching: in v1, F6's waves were frozen while the reference video (V2 01:46) shows the noise wave racing the chip; F9's foam padding hid the inner mic; F10's waves didn't move. All three were fixed in v2.
+

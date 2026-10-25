@@ -27,9 +27,9 @@ PROBE_JS = """
     if (!fig) { r.errors.push('figure() returned nothing'); continue; }
     r.methods = ['set','reset','advance','getState','highlight'].filter(m => typeof fig[m] !== 'function');
     r.controls = fig.controls || null;
-    r.has_element = !!document.querySelector(`[data-figure="${f.id}"]`);
+    r.has_element = !!document.querySelector(`figure[data-figure="${f.id}"], #fig-${f.id}`);
     try {
-      const el = document.querySelector(`[data-figure="${f.id}"]`);
+      const el = document.querySelector(`figure[data-figure="${f.id}"], #fig-${f.id}`);
       if (el) el.scrollIntoView({block: 'center'});
       fig.reset();
       fig.advance(1/30);

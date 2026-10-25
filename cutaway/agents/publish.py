@@ -121,10 +121,16 @@ def proof_html(state: RunState, best: int, final: Path) -> str:
                          f"→ chose <b>{E(str(c.get('chosen', '')))}</b> ({E(str(c.get('why', '')))})</li>")
         parts.append("</ul>")
 
-    # sources
+    # sources: only the ones the spec actually cites
     ranks = {s["id"]: s.get("rank") for s in state.sources}
-    parts += ["<h3>Cited sources</h3>", '<ol class="proof-sources">']
-    for s in spec.sources:
+    cited = {c.source for x in (*spec.entities, *spec.laws, *spec.figures) for c in x.cite} | \
+            {v.source for v in spec.video_facts}
+    listed = sorted((s for s in spec.sources if s.get("id") in cited), key=lambda s: (ranks.get(s.get("id"), 9), str(s.get("id"))))
+    parts += ["<h3>Cited sources</h3>",
+              f"<p class=\"proof-note\">{len(listed)} sources are cited above; "
+              f"{max(0, st['sources_total'] - len(listed))} more were read but not cited.</p>",
+              '<ol class="proof-sources">']
+    for s in listed:
         u = str(s.get("url_or_file", ""))
         link = f'<a href="{E(u)}">{E(u)}</a>' if u.startswith("http") else E(Path(u).name)
         parts.append(f"<li id=\"proof-src-{E(str(s.get('id')))}\"><b>[{E(str(s.get('id')))}]</b> {E(str(s.get('title', '')))} "
@@ -135,7 +141,7 @@ def proof_html(state: RunState, best: int, final: Path) -> str:
 
 PROOF_CSS = """
 <style>
-.cutaway-proof{max-width:880px;margin:96px auto 64px;padding:0 20px;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;color:#22252a;border-top:2px solid #22252a}
+.cutaway-proof{position:relative;z-index:2147483000;isolation:isolate;background:#fff;max-width:880px;margin:96px auto 0;padding:0 20px 64px;box-shadow:0 0 0 100vmax #fff;clip-path:inset(0 -100vmax);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;color:#22252a;border-top:2px solid #22252a}
 .cutaway-proof h2{margin-top:32px}.cutaway-proof h3{margin-top:40px}
 .proof-stats{display:grid;grid-template-columns:max-content 1fr;gap:6px 20px}.proof-stats dt{font-weight:600}.proof-stats dd{margin:0}
 .proof-scroll{overflow-x:auto}.proof-table{border-collapse:collapse;width:100%;font-size:14px}
