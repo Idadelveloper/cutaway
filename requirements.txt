@@ -1,0 +1,9 @@
+google-genai>=2.33.0
+google-adk>=2.13.0
+fastapi
+uvicorn
+playwright
+numpy
+pydantic>=2
+python-dotenv
+pyyaml
