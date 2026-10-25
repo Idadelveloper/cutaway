@@ -110,7 +110,8 @@ class SpecWriter(Stage):
             hero=t.get("hero", ""), fig_min=lo, fig_max=hi,
             sources=json.dumps(listed, indent=1),
             law_checks=json.dumps(t.get("law_checks", {}), indent=1),
-            probes=", ".join(t.get("probes", [])), palette=", ".join(config.PALETTE),
+            probes=", ".join(t.get("probes", [])), palette=", ".join(config.palette(t)),
+            spec_notes=t.get("spec_notes", ""),
             video_research=json.dumps(videos, indent=1),
             diagram_research=json.dumps(state.research.get("diagrams", {}), indent=1),
             source_texts=texts)  # last, so placeholders inside source texts are never substituted
@@ -120,7 +121,7 @@ class SpecWriter(Stage):
         events.emit(state.run_id, "info", stage="spec",
                     msg=f"spec: input tokens {res.usage.get('total_input_tokens')}", usage=res.usage)
 
-        checks, palette = set(t.get("law_checks", {})), set(config.PALETTE)
+        checks, palette = set(t.get("law_checks", {})), set(config.palette(t))
         errs = validate_spec(spec, checks, palette)
         cit_findings, cit_stats = check_citations(spec, texts_dir(state))
         high = [f for f in cit_findings if f.severity == "high"]

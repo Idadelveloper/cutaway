@@ -5,10 +5,15 @@ Key questions:
 {{questions}}
 
 Tasks:
-1. Find 8-12 open-access primary sources: papers (arXiv, university repositories, open journals), patents (Google Patents), standards or manufacturer application notes/white papers on active noise cancellation in headphones (feedforward/feedback mics, latency, attenuation by frequency, transparency mode).
+1. Find 8-12 open-access primary sources on the topic:
+{{source_mix}}
+   Focus on:
+{{research_focus}}
 2. Download each one in the sandbox (curl/wget/Python). Extract its full text (e.g. pdftotext or pypdf for PDFs, keeping "[p.N]" page markers; readability-style extraction for HTML).
 3. Skip anything paywalled, login-gated, blocked or under 800 characters of text, and list it under "skipped" with the reason.
-4. In Python, check numerically: (a) for a sine of frequency f and delay tau, RMS(noise + inverted delayed noise)/RMS(noise) = 2|sin(pi f tau)|; (b) f * wavelength = 343 m/s for f in 100, 1000, 5000 Hz. Put the results in "checks".
+4. In Python, check numerically:
+{{scout_checks}}
+   Put the results in "checks".
 
 Final answer: a single JSON object only, no prose, no code fences. Include the extracted text verbatim, truncated to the first 25000 characters per source:
 {

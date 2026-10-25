@@ -7,6 +7,9 @@ Audience: {{audience}}
 Use exactly these figure ids, controls, entity ids (with color names) and probes, so an automated harness can drive the page:
 {{skeleton}}
 
+## Topic palette (color name -> hex)
+{{palette}}
+
 ## Style rules
 {{style}}
 

@@ -6,6 +6,9 @@ import asyncio
 import json
 import os
 
+from fastapi import HTTPException
+
+import server.main as srv
 from cutaway import config, scoring
 from cutaway.harness import render as render_mod
 from tests.test_contract_m3 import PAGE
@@ -75,3 +78,28 @@ def test_full_pipeline_fake(tmp_path, monkeypatch):
     assert "youtube.com/embed/abcdefg" in page                       # reference moment next to the fix
     assert (run / "final" / "proof" / "fix0_before.mp4").exists()
     assert json.loads((run / "published.json").read_text())["version"] == 2
+
+    # quick change request: scoped, checked, and left for a human to approve (not auto-published)
+    from cutaway.agents.quick import quick_change
+    fixture("scope", {"figures": ["F1"], "files": ["index.html"], "why": "label text"})
+    fixture("quickfix_v3", {"plan": "relabel", "files": {"index.html": GOOD_PAGE.replace("listens", "picks up noise")}})
+    fixture("review_v3_F1", {"answers": [{"q": i, "answer": "yes"} for i in range(1, 6)]})
+    fixture("fidelity_v3", {"findings": []})
+    st = RunState.model_validate_json((run / "state.json").read_text())
+    res = asyncio.run(quick_change(st, "say 'picks up noise' instead of 'listens'"))
+    assert res["version"] == 3 and res["status"] == "ready" and res["figures"] == ["F1"]
+    assert "picks up noise" in (run / "v3" / "index.html").read_text()
+    assert (run / "clips" / "v3" / "F1_default.mp4").exists()
+    assert json.loads((run / "published.json").read_text())["version"] == 2     # still v2 until approved
+    st = RunState.model_validate_json((run / "state.json").read_text())
+    assert st.versions[3]["status"] == "ready" and st.version == 2
+
+    # a human approves -> only now is v3 published; a discarded version can't be approved
+    out = asyncio.run(srv.approve("e2e", 3))
+    assert out["ok"] and json.loads((run / "published.json").read_text())["version"] == 3
+    assert "picks up noise" in (run / "final" / "index.html").read_text()
+    try:
+        asyncio.run(srv.approve("e2e", 3))          # already published
+        raise AssertionError("second approve should fail")
+    except HTTPException as e:
+        assert e.status_code == 400

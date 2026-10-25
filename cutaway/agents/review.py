@@ -86,7 +86,7 @@ def reference_parts(state: RunState, fig) -> tuple[list[dict], str]:
     return parts, "\n".join(lines) or "(none: judge against the spec only)"
 
 
-async def visual_reviewer(state: RunState, fig, version: int) -> list[Finding]:
+async def visual_reviewer(state: RunState, fig, version: int, thinking: str = "high") -> list[Finding]:
     clips_dir = run_dir(state) / "clips" / f"v{version}"
     clips = sorted(clips_dir.glob(f"{fig.id}_*.mp4"))
     if not clips:
@@ -95,9 +95,10 @@ async def visual_reviewer(state: RunState, fig, version: int) -> list[Finding]:
     ents = [e.model_dump() for e in state.spec.entities if e.id in fig.entities]
     prompt = config.load_prompt("review", figure_id=fig.id, figure=json.dumps(fig.model_dump(), indent=1),
                                 entities=json.dumps(ents, indent=1), video_facts=vf_text,
-                                clips="\n".join(f"- {c.stem}" for c in clips))
+                                clips="\n".join(f"- {c.stem}" for c in clips),
+                                palette=", ".join(f"{k} {v}" for k, v in config.palette(state.topic).items()))
     parts = ref_parts + [p for c in clips for p in (llm.text_part(f"Clip {c.stem}:"), llm.file_part(c))]
-    out, _ = await llm.call_model(_Review, stage=f"review_v{version}_{fig.id}", model=config.ARGON, thinking="high",
+    out, _ = await llm.call_model(_Review, stage=f"review_v{version}_{fig.id}", model=config.ARGON, thinking=thinking,
                                   input=parts + [llm.text_part(prompt)], run_id=state.run_id)
     fs = []
     for a in out.answers:
@@ -143,7 +144,7 @@ async def review_version(state: RunState, version: int) -> list[Finding]:
             events.emit(state.run_id, "error", agent=name, msg=f"{name} failed: {e!r}"[:500])
             return []
 
-    jobs = {"checks": asyncio.to_thread(run_checks, state.spec, run_dir(state), version),
+    jobs = {"checks": asyncio.to_thread(run_checks, state.spec, run_dir(state), version, config.palette(state.topic)),
             "fidelity": fidelity_checker(state, version)}
     for f in state.spec.figures:
         jobs[f"watch_{f.id}"] = visual_reviewer(state, f, version)

@@ -9,6 +9,8 @@ audience: >
   Curious adults with no physics background beyond high school. Comfortable with
   sliders and diagrams, not with equations; equations may appear as optional asides.
 
+field: physics / engineering
+for: [teachers, students, hardware documentation teams]
 figure_count: [8, 12]
 figure_hints:
   - "Sound is air pressure: particles move back and forth without traveling"
@@ -78,3 +80,32 @@ model_notes: |
     "time slowed x N" factor, but compute probes at the true physical frequency f and simulated time t / N.
   - Expose t_phys_s (the physical time the probes were computed at) and time_scale (N) as probes, so checks can
     reconstruct the waveform exactly.
+
+palette:
+  grey: "#c9ccd1"
+  ink: "#22252a"
+  noise: "#e0533d"
+  anti: "#2f7de1"
+  total: "#7b4fd6"
+  mic: "#1fa37a"
+  chip: "#e3a21a"
+  speaker: "#d64f9a"
+  air: "#8fb8de"
+  padding: "#9c7a5b"
+
+spec_notes: |
+  - Figures that show waves at the ear expose p_noise_ear, p_anti_ear, p_total_ear and list the superposition laws.
+
+source_mix:
+  - papers (open access preferred) and patents on active noise control in headphones
+  - standards and manufacturer/engineering docs (application notes, white papers from chip and headphone makers)
+  - quality technical articles (engineering magazines, university pages, acoustics societies)
+
+research_focus:
+  - speed of sound and wavelength; superposition and phase inversion
+  - feedforward vs feedback microphones; processing latency and its effect on cancellation vs frequency
+  - typical ANC and passive attenuation (dB) by frequency band; transparency / hear-through mode
+
+scout_checks:
+  - for a sine of frequency f and delay tau, RMS(noise + inverted delayed noise)/RMS(noise) = 2|sin(pi f tau)|
+  - f * wavelength = 343 m/s for f in 100, 1000, 5000 Hz

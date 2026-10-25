@@ -5,162 +5,462 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cutaway</title>
 <style>
-  :root { --ink:#22252a; --muted:#6b7078; --line:#e3e5e8; --accent:#2f7de1; --bad:#e0533d; --ok:#1fa37a; }
-  * { box-sizing: border-box; }
-  body { margin:0; font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; color:var(--ink); background:#fff; }
-  main { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; }
-  h1 { font-size: 28px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 32px 0 12px; }
-  .sub { color: var(--muted); margin: 0 0 24px; }
-  .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
-  .card { border:1px solid var(--line); border-radius:10px; padding:18px; }
-  label { display:block; font-weight:600; font-size:14px; margin: 12px 0 4px; }
-  input[type=text], select, textarea { width:100%; font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:6px; }
-  textarea { min-height: 80px; font-size: 14px; }
-  button { font:inherit; font-weight:600; padding:9px 16px; border:0; border-radius:6px; background:var(--ink); color:#fff; cursor:pointer; margin-top:14px; }
-  button:disabled { opacity:.4; cursor:default; }
+  :root {
+    --ink:#1f2328; --muted:#656d76; --faint:#8c959f; --line:#e4e7eb; --bg:#f6f7f9; --card:#fff;
+    --accent:#2f6fde; --accent-soft:#e9f0fc; --ok:#1a7f5a; --ok-soft:#e5f5ee; --bad:#cf3b2a; --bad-soft:#fcebe8;
+    --warn:#a76a00; --warn-soft:#fdf3dc; --radius:12px;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; color:var(--ink); background:var(--bg); }
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  button { font:inherit; cursor:pointer; border-radius:8px; border:1px solid transparent; padding:9px 16px; font-weight:600; }
+  button.primary { background:var(--accent); color:#fff; } button.primary:hover { filter:brightness(1.07); }
+  button.ghost { background:#fff; color:var(--ink); border-color:var(--line); } button.ghost:hover { background:#f3f4f6; }
+  button.ok { background:var(--ok); color:#fff; }
+  button:disabled { opacity:.45; cursor:default; filter:none; }
+  input[type=text], textarea { width:100%; font:inherit; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  input[type=text]:focus, textarea:focus { outline:2px solid var(--accent-soft); border-color:var(--accent); }
+
+  header { background:#fff; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; padding-top:env(safe-area-inset-top, 0px); }
+  .bar { max-width:1240px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:14px; }
+  .logo { font-weight:800; font-size:19px; letter-spacing:-.01em; display:flex; align-items:center; gap:8px; color:var(--ink); }
+  .logo:hover { text-decoration:none; }
+  .logo i { width:22px; height:22px; border-radius:6px; background:conic-gradient(from 200deg, #2f6fde, #7b4fd6, #e0533d, #2f6fde); display:inline-block; }
+  .tag { color:var(--muted); font-size:14px; } .bar .spacer { flex:1; }
+
+  .layout { max-width:1240px; margin:0 auto; padding:20px 16px; display:grid; grid-template-columns:280px minmax(0, 1fr); gap:20px; }
+  .layout > * { min-width:0; }
+  @media (max-width: 900px) { .layout { grid-template-columns:minmax(0, 1fr); } .tag { display:none; } .runs { max-height:240px; overflow:auto; } }
+  @media (max-width: 500px) { .card { padding:14px; } h1 { font-size:20px; } .num .v { font-size:20px; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px; }
+  h1 { font-size:24px; margin:0; letter-spacing:-.01em; }
+  h3 { font-size:13px; margin:0 0 10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+  .muted { color:var(--muted); } .small { font-size:13px; }
+  main section + section { margin-top:16px; }
+
+  /* sidebar */
+  .side h3 { display:flex; justify-content:space-between; align-items:center; }
+  .runs { list-style:none; margin:0; padding:0; }
+  .runs li a { display:block; padding:10px; border-radius:8px; color:var(--ink); }
+  .runs li a:hover { background:#f3f4f6; text-decoration:none; }
+  .runs li a.sel { background:var(--accent-soft); }
+  .runs .t { font-weight:600; font-size:14px; }
+  .runs .m { font-size:12px; color:var(--muted); display:flex; gap:6px; align-items:center; margin-top:3px; flex-wrap:wrap; }
+
+  .badge { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:2px 9px; border-radius:99px; background:#eef0f3; color:var(--muted); white-space:nowrap; }
+  .badge.running { background:var(--accent-soft); color:var(--accent); }
+  .badge.running::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--accent); animation:pulse 1.2s infinite; }
+  .badge.complete { background:var(--ok-soft); color:var(--ok); } .badge.complete::before { content:"✓"; }
+  .badge.failed { background:var(--bad-soft); color:var(--bad); } .badge.stopped { background:var(--warn-soft); color:var(--warn); }
+  .badge.ready { background:var(--warn-soft); color:var(--warn); }
+  @keyframes pulse { 50% { opacity:.3; } }
+
+  /* new explainer */
+  .topics { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:12px; margin:16px 0; }
+  .topic { text-align:left; background:#fff; border:2px solid var(--line); border-radius:var(--radius); padding:14px; font-weight:400; display:flex; flex-direction:column; gap:6px; min-height:150px; color:var(--ink); }
+  .topic:hover { border-color:#c9d3e3; } .topic.sel { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .topic .f { font-size:12px; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+  .topic .n { font-weight:700; font-size:16px; line-height:1.3; }
+  .topic .a { font-size:13px; color:var(--muted); display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { font-size:12px; background:#f1f3f5; border-radius:99px; padding:2px 9px; color:var(--muted); }
+  button.chip { font-weight:500; border:1px solid var(--line); background:#fff; color:var(--ink); padding:5px 11px; font-size:13px; }
+  button.chip:hover { background:var(--accent-soft); border-color:var(--accent); }
+  details.adv summary { cursor:pointer; color:var(--muted); font-size:14px; margin:6px 0; }
+  details.adv[open] summary { margin-bottom:10px; }
+  .how { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-top:18px; }
+  @media (max-width: 700px) { .how { grid-template-columns:1fr 1fr; } }
+  .how div { background:#f8f9fb; border-radius:10px; padding:12px; font-size:13px; color:var(--muted); }
+  .how b { display:block; color:var(--ink); font-size:14px; margin-bottom:2px; }
   .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px; background:#f1f2f4; }
-  .pill.run { background:#e8f0fc; color:var(--accent); } .pill.err { background:#fdecea; color:var(--bad); } .pill.ok { background:#e6f6f0; color:var(--ok); }
-  #status dl { display:grid; grid-template-columns:max-content 1fr; gap:4px 16px; margin:0; }
-  #status dt { color:var(--muted); font-size:14px; } #status dd { margin:0; word-break: break-word; }
-  #log { height: 280px; overflow:auto; font: 12px/1.45 ui-monospace, Menlo, monospace; background:#fafafa; border:1px solid var(--line); border-radius:6px; padding:8px; white-space:pre-wrap; }
-  #log .error { color: var(--bad); } #log .finding { color: #b06a00; } #log .stage { font-weight:700; }
-  table { border-collapse:collapse; width:100%; font-size:13px; } th, td { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+
+  /* run view */
+  .runhead { display:flex; gap:16px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
+  .runhead .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .steps { display:flex; margin:20px 0 6px; overflow-x:auto; padding-bottom:4px; }
+  .step { flex:1; min-width:84px; text-align:center; position:relative; font-size:12px; color:var(--faint); }
+  .step .dot { width:28px; height:28px; border-radius:50%; margin:0 auto 6px; display:grid; place-items:center; background:#eef0f3; color:var(--faint); font-weight:700; font-size:13px; position:relative; z-index:1; }
+  .step::before { content:""; position:absolute; top:14px; left:-50%; width:100%; height:2px; background:#e4e7eb; }
+  .step:first-child::before { display:none; }
+  .step.done { color:var(--ink); } .step.done .dot { background:var(--ok); color:#fff; } .step.done::before { background:var(--ok); }
+  .step.active { color:var(--accent); font-weight:700; } .step.active .dot { background:var(--accent); color:#fff; box-shadow:0 0 0 5px var(--accent-soft); }
+  .step.active::before { background:var(--ok); } .step.failed .dot { background:var(--bad); color:#fff; } .step.failed { color:var(--bad); }
+  .now { font-size:14px; color:var(--muted); margin:8px 0 0; min-height:21px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .nums { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; }
+  .num { background:#f8f9fb; border-radius:10px; padding:12px 14px; }
+  .num .v { font-size:24px; font-weight:800; letter-spacing:-.02em; } .num .l { font-size:13px; color:var(--muted); }
+  .num .v small { font-size:14px; color:var(--muted); font-weight:600; }
   .scroll { overflow-x:auto; }
-  #runs li { margin: 4px 0; } a { color: var(--accent); }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
+  td.z { color:var(--faint); } .hi { color:var(--bad); font-weight:700; }
+  tr.best td { background:var(--ok-soft); }
+  .ver { border:1px solid var(--line); border-radius:var(--radius); padding:14px; margin-top:12px; }
+  .ver.ready { border-color:#e9c46a; background:#fffcf3; }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:10px 0; }
+  @media (max-width: 600px) { .pair { grid-template-columns:1fr; } }
+  .pair video { width:100%; border:1px solid var(--line); border-radius:8px; background:#fff; display:block; }
+  .pair p { margin:4px 0 0; font-size:12px; color:var(--muted); }
+  .ver ul { margin:8px 0; padding-left:18px; font-size:14px; } .ver li { margin:3px 0; }
+  details.log summary { cursor:pointer; font-weight:600; }
+  #log { max-height:300px; overflow:auto; font:12px/1.5 ui-monospace, Menlo, monospace; background:#f8f9fb; border-radius:8px; padding:10px; margin-top:10px; white-space:pre-wrap; word-break:break-word; }
+  #log .error { color:var(--bad); } #log .stage { font-weight:700; } #log .finding { color:var(--warn); }
+  .ready-banner { display:flex; gap:14px; align-items:center; flex-wrap:wrap; background:var(--ok-soft); border:1px solid #b6e2cf; border-radius:var(--radius); padding:14px 16px; margin-bottom:16px; }
+  .ready-banner b { font-size:16px; } .ready-banner code { font-size:12px; color:var(--muted); word-break:break-all; }
+  .toast { position:fixed; bottom:calc(20px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 16px; border-radius:10px; font-size:14px; z-index:20; max-width:90vw; }
 </style>
 </head>
 <body>
-<main>
-  <h1>Cutaway</h1>
-  <p class="sub">Research a concept from real sources, generate an interactive 3D explainer, then render, measure, watch and fix it until the checks pass.</p>
-
-  <div class="grid">
-    <form id="start" class="card">
-      <h2 style="margin-top:0">New run</h2>
-      <label for="topic">Topic</label>
-      <select id="topic" name="topic"></select>
-      <label for="urls">Extra source URLs (optional, one per line, "title | url" allowed)</label>
-      <textarea id="urls" name="urls" placeholder="https://www.youtube.com/watch?v=...&#10;https://arxiv.org/pdf/..."></textarea>
-      <label for="files">Extra source files (optional: PDFs, images, MP4s)</label>
-      <input id="files" name="files" type="file" multiple>
-      <label class="row" style="font-weight:400"><input type="checkbox" name="fresh_research" value="true"> Redo research (ignore cache)</label>
-      <button id="go" type="submit">Start run</button>
-    </form>
-
-    <div class="card">
-      <h2 style="margin-top:0">Runs</h2>
-      <ul id="runs" style="padding-left:18px;margin:0"></ul>
-    </div>
+<header>
+  <div class="bar">
+    <a class="logo" href="#"><i></i>Cutaway</a>
+    <span class="tag">Interactive 3D explainers, checked against their sources</span>
+    <span class="spacer"></span>
+    <button class="primary" id="newBtn">+ New explainer</button>
   </div>
+</header>
 
-  <section id="status" hidden>
-    <h2>Progress <span id="state" class="pill">…</span></h2>
+<div class="layout">
+  <aside class="side">
     <div class="card">
-      <dl>
-        <dt>Run</dt><dd id="rid"></dd>
-        <dt>Stage</dt><dd id="stage">–</dd>
-        <dt>Agent</dt><dd id="agent">–</dd>
-        <dt>Elapsed</dt><dd id="elapsed">–</dd>
-        <dt>Latest finding</dt><dd id="finding">–</dd>
-        <dt>Explainer</dt><dd id="link">not ready yet</dd>
-      </dl>
+      <h3>Your explainers <span id="runCount" class="small muted"></span></h3>
+      <ul class="runs" id="runs"><li class="muted small">loading…</li></ul>
     </div>
-    <h2>Findings per version</h2>
-    <div class="scroll"><table id="table"><tr><td>none yet</td></tr></table></div>
-    <h2>Event log</h2>
-    <div id="log"></div>
+  </aside>
 
-    <form id="change" class="card" style="margin-top:24px">
-      <h2 style="margin-top:0">Change request</h2>
-      <p class="sub" style="margin:0">Applied by the Fixer as a requirement, then re-rendered and re-checked. Only accepted if the checks pass.</p>
-      <label for="ctext">What should change?</label>
-      <input id="ctext" type="text" placeholder="make the chip 1 ms slower">
-      <button id="cgo" type="submit">Submit change</button>
-    </form>
-  </section>
-</main>
+  <main id="main">
+    <!-- New explainer -->
+    <div id="viewNew" hidden>
+      <section class="card">
+        <h1>Create an explainer</h1>
+        <p class="muted" style="margin:6px 0 0">For <b>students</b> learning a hard concept, <b>teachers</b> preparing a lesson, and <b>hardware documentation teams</b>.
+          Pick a topic: Cutaway finds the sources, writes a cited plan, builds the interactive page, then renders it, measures it and fixes it until the checks pass.</p>
+        <div class="topics" id="topics"></div>
+        <form id="startForm">
+          <input type="hidden" name="topic" id="topicInput">
+          <details class="adv">
+            <summary>Add your own sources (optional)</summary>
+            <label class="small muted" for="urls">Links: one per line, or "title | url"</label>
+            <textarea id="urls" name="urls" rows="3" placeholder="https://www.youtube.com/watch?v=…&#10;https://example.org/paper.pdf"></textarea>
+            <div style="margin-top:10px"><label class="small muted" for="files">Files: PDFs, images, MP4s</label><br><input id="files" name="files" type="file" multiple></div>
+            <label class="row small" style="margin-top:10px"><input type="checkbox" name="fresh_research" value="true"> Redo the research even if it's cached</label>
+          </details>
+          <div class="row" style="margin-top:14px">
+            <button class="primary" id="startBtn" type="submit" disabled>Create explainer</button>
+            <span class="small muted" id="estimate">Choose a topic to start.</span>
+          </div>
+        </form>
+        <div class="how">
+          <div><b>1 · Research</b>Finds 20–50 papers, articles and videos and stores their full text.</div>
+          <div><b>2 · Cited plan</b>Every fact carries a quote, checked word for word against its source.</div>
+          <div><b>3 · Build</b>Writes the whole interactive 3D page in one pass.</div>
+          <div><b>4 · Check &amp; fix</b>Renders every figure, measures the science, watches it next to the reference videos, fixes what's wrong.</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Run view -->
+    <div id="viewRun" hidden>
+      <div class="ready-banner" id="readyBanner" hidden>
+        <div style="flex:1; min-width:220px"><b>Your explainer is ready.</b>
+          <div class="small">It opened in a new tab. If your browser blocked that, use the button.</div>
+          <code id="readyPath"></code></div>
+        <a id="readyLink" target="_blank"><button class="ok">Open explainer ↗</button></a>
+      </div>
+      <section class="card">
+        <div class="runhead">
+          <div>
+            <div class="small muted" id="rField"></div>
+            <h1 id="rTitle">…</h1>
+            <div class="row small muted" style="margin-top:6px"><span id="rBadge" class="badge">…</span><span id="rElapsed"></span><span id="rId"></span></div>
+          </div>
+          <div class="actions" id="rActions"></div>
+        </div>
+        <div class="steps" id="steps"></div>
+        <p class="now" id="now"></p>
+      </section>
+
+      <section class="card" id="numsCard" hidden>
+        <h3>At a glance</h3>
+        <div class="nums" id="nums"></div>
+      </section>
+
+      <section class="card" id="qualityCard" hidden>
+        <h3>Quality by version</h3>
+        <p class="small muted" style="margin:0 0 10px">Problems the checks found in each version; red numbers are high-severity. The highlighted row is the published version.</p>
+        <div class="scroll"><table id="table"></table></div>
+      </section>
+
+      <section class="card" id="changeCard" hidden>
+        <h3>Ask for a change</h3>
+        <p class="small muted" style="margin:0 0 10px">Describe what to change. Cutaway edits only the affected figures, re-renders them and re-checks them (about 1–2 minutes). If the checks pass, you decide whether to publish it.</p>
+        <form id="changeForm" class="row">
+          <input type="text" id="ctext" placeholder="e.g. make the labels bigger in the first figure" style="flex:1; min-width:220px">
+          <button class="primary" id="cgo" type="submit">Request change</button>
+        </form>
+        <div class="chips" id="suggest" style="margin-top:10px"></div>
+        <div id="versions"></div>
+      </section>
+
+      <section class="card">
+        <details class="log" id="logBox">
+          <summary>Show details (activity log)</summary>
+          <div id="log"></div>
+        </details>
+      </section>
+    </div>
+  </main>
+</div>
 
 <script>
 const $ = (id) => document.getElementById(id);
-let es = null, runId = null, t0 = null, timer = null;
+const esc = (t) => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const STEPS = ['Research', 'Cited plan', 'Build', 'Render', 'Check', 'Fix', 'Publish'];
+const STEP_OF = {queued: 0, intake: 0, research: 0, spec: 1, build: 2, render: 3, review: 4, fix: 5, publish: 6};
+const STATUS_LABEL = {running: 'Running', complete: 'Complete', failed: 'Failed', stopped: 'Stopped', new: 'Starting'};
+const LAYERS = [['law', 'Science'], ['interaction', 'Page'], ['fidelity', 'Facts'], ['watched', 'Watched'], ['contract', 'Contract']];
+const SUGGEST = ['Make the text simpler for high-school students', 'Add a label to every part in the first figure',
+                 'Slow down the animation in the first figure', 'Use larger fonts in the plots'];
+let topics = [], runId = null, es = null, timer = null, summary = null, refreshing = false;
 
-async function loadTopics() {
-  const ts = await (await fetch('/api/topics')).json();
-  $('topic').innerHTML = ts.map(t => `<option>${t}</option>`).join('');
+/* open the explainer once per run when this tab sees it finish (popup blockers may refuse: the banner covers that) */
+function openedKey(id) { return 'cutaway-opened-' + id; }
+function wasOpened(id) { try { return sessionStorage.getItem(openedKey(id)) === '1'; } catch { return false; } }
+function markOpened(id) { try { sessionStorage.setItem(openedKey(id), '1'); } catch {} }
+function openExplainer(s, auto) {
+  $('readyLink').href = s.explainer;
+  $('readyPath').textContent = s.explainer_file ? 'File: ' + s.explainer_file : '';
+  $('readyBanner').hidden = false;
+  if (auto && wasOpened(s.run_id)) return;
+  markOpened(s.run_id);
+  const w = window.open(s.explainer, '_blank');
+  if (!w) toast('Your browser blocked the new tab. Use "Open explainer" in the green banner.');
 }
+
+function toast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 4000);
+}
+function ago(ts) {
+  if (!ts) return '';
+  const s = Date.now() / 1000 - ts;
+  if (s < 90) return 'just now'; if (s < 3600) return Math.round(s / 60) + ' min ago';
+  if (s < 86400) return Math.round(s / 3600) + ' h ago'; return new Date(ts * 1000).toLocaleDateString();
+}
+function when(ts) {
+  if (!ts) return '';
+  const d = new Date(ts * 1000), today = new Date().toDateString() === d.toDateString();
+  return (today ? '' : d.toLocaleDateString() + ' ') + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ` (${ago(ts)})`;
+}
+function dur(s) {
+  s = Math.round(s || 0); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60);
+  return h ? `${h} h ${m} min` : m ? `${m} min` : `${s} s`;
+}
+function badge(status) { return `<span class="badge ${esc(status)}">${esc(STATUS_LABEL[status] || status)}</span>`; }
+
+/* ---------- routing: #run/<id> shows a run, anything else the "new" page ---------- */
+function route() {
+  const m = location.hash.match(/^#run\/(.+)$/);
+  if (m) showRun(decodeURIComponent(m[1])); else showNew();
+}
+window.addEventListener('hashchange', route);
+$('newBtn').onclick = () => { if (location.hash) location.hash = ''; else showNew(); };
+
+/* ---------- sidebar ---------- */
 async function loadRuns() {
-  const rs = await (await fetch('/api/runs')).json();
-  $('runs').innerHTML = rs.slice(0, 12).map(r =>
-    `<li><a href="#" data-run="${r.run_id}">${r.run_id}</a> <span class="pill ${r.running ? 'run' : r.published ? 'ok' : ''}">${r.running ? 'running' : r.published ? 'published' : (r.stage || '')}</span></li>`
-  ).join('') || '<li>none yet</li>';
+  let runs;
+  try { runs = await (await fetch('/api/runs')).json(); } catch { return; }
+  $('runCount').textContent = runs.length || '';
+  $('runs').innerHTML = runs.map(r => `<li><a href="#run/${encodeURIComponent(r.run_id)}" class="${r.run_id === runId ? 'sel' : ''}">
+      <div class="t">${esc(r.title || r.topic)}</div>
+      <div class="m">${badge(r.status)}${r.pending ? `<span class="badge ready">${r.pending} to review</span>` : ''}</div>
+      <div class="m">${r.published && r.best ? `v${r.best} published · ` : ''}started ${esc(when(r.started))}</div></a></li>`).join('')
+    || '<li class="muted small">No explainers yet. Create one →</li>';
 }
-$('runs').addEventListener('click', (e) => { const a = e.target.closest('a[data-run]'); if (a) { e.preventDefault(); watch(a.dataset.run); } });
 
-function fmt(s) { const m = Math.floor(s / 60); return `${m}m ${Math.floor(s % 60)}s`; }
-function log(ev) {
-  const d = document.createElement('div');
-  d.className = ev.kind;
-  const ts = new Date(ev.ts * 1000).toLocaleTimeString();
-  d.textContent = `${ts} [${ev.kind}] ${ev.msg || ev.stage || ev.agent || ''}`;
-  $('log').appendChild(d);
-  $('log').scrollTop = $('log').scrollHeight;
+/* ---------- new explainer ---------- */
+async function showNew() {
+  stopWatching(); runId = null; loadRuns();
+  $('viewRun').hidden = true; $('viewNew').hidden = false;
+  if (!topics.length) topics = await (await fetch('/api/topics')).json();
+  $('topics').innerHTML = topics.map(t => `<button type="button" class="topic" data-t="${esc(t.name)}">
+      <span class="f">${esc(t.field || '')}</span><span class="n">${esc(t.title)}</span>
+      <span class="a">${esc(t.audience)}</span>
+      <span class="chips">${(t.for || []).map(x => `<span class="chip">${esc(x)}</span>`).join('')}${t.cached_research ? '<span class="chip">research cached</span>' : ''}</span></button>`).join('');
+  document.querySelectorAll('.topic').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.topic').forEach(x => x.classList.toggle('sel', x === b));
+    const t = topics.find(x => x.name === b.dataset.t);
+    $('topicInput').value = t.name; $('startBtn').disabled = false;
+    $('estimate').textContent = t.cached_research ? 'Research is cached: about 40 minutes to a checked, published explainer.'
+                                                  : 'First run for this topic: about 60 minutes (research takes about 20).';
+  });
 }
-async function refresh() {
-  const s = await (await fetch(`/api/runs/${runId}`)).json();
-  if (s.explainer) $('link').innerHTML = `<a href="${s.explainer}" target="_blank">${s.explainer}</a>`;
-  const L = ['contract', 'law', 'interaction', 'fidelity', 'watched'];
-  if (s.table.length) $('table').innerHTML = '<tr><th>version</th>' + L.map(l => `<th>${l}</th>`).join('') + '<th>high</th><th>weighted</th></tr>' +
-    s.table.map(r => `<tr><td>${r.version}${s.best && r.version === 'v' + s.best ? ' ★' : ''}</td>` +
-      L.map(l => { const x = r.layers[l]; return `<td>${x.high + x.medium + x.low} (${x.high}H)</td>`; }).join('') +
-      `<td>${r.high}</td><td>${r.weighted}</td></tr>`).join('');
-  $('state').textContent = s.running ? 'running' : 'idle';
-  $('state').className = 'pill ' + (s.running ? 'run' : 'ok');
-  $('cgo').disabled = s.running || !s.version;
-}
-function watch(id) {
-  if (es) es.close();
-  runId = id; t0 = null; $('log').innerHTML = ''; $('status').hidden = false; $('rid').textContent = id;
-  $('finding').textContent = '–'; $('agent').textContent = '–'; $('link').textContent = 'not ready yet';
-  es = new EventSource(`/api/runs/${id}/events`);
-  es.onmessage = (m) => {
-    const ev = JSON.parse(m.data);
-    t0 = t0 || ev.ts;
-    log(ev);
-    if (ev.kind === 'stage') $('stage').textContent = ev.msg || ev.stage;
-    if (ev.kind === 'agent' || ev.kind === 'call') $('agent').textContent = ev.msg || ev.agent;
-    if (ev.kind === 'finding') $('finding').textContent = ev.msg;
-    if (['stage', 'done'].includes(ev.kind)) { refresh(); loadRuns(); }
-    if (ev.kind === 'done') { $('elapsed').textContent = fmt(ev.ts - t0) + ' (finished)'; clearInterval(timer); timer = null; }
-  };
-  clearInterval(timer);
-  timer = setInterval(() => { if (t0) $('elapsed').textContent = fmt(Date.now() / 1000 - t0); }, 1000);
-  refresh();
-}
-$('start').addEventListener('submit', async (e) => {
+$('startForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  $('go').disabled = true;
+  $('startBtn').disabled = true;
   try {
-    const r = await fetch('/api/runs', { method: 'POST', body: new FormData($('start')) });
+    const r = await fetch('/api/runs', { method: 'POST', body: new FormData($('startForm')) });
     const j = await r.json();
     if (!r.ok) throw new Error(j.detail || r.status);
-    watch(j.run_id); loadRuns();
-  } catch (err) { log({ ts: Date.now() / 1000, kind: 'error', msg: 'could not start: ' + err.message }); $('status').hidden = false; }
-  $('go').disabled = false;
+    location.hash = 'run/' + encodeURIComponent(j.run_id);
+  } catch (err) { toast('Could not start: ' + err.message); }
+  $('startBtn').disabled = false;
 });
-$('change').addEventListener('submit', async (e) => {
+
+/* ---------- run view ---------- */
+function stopWatching() { if (es) es.close(); es = null; clearInterval(timer); timer = null; }
+function showRun(id) {
+  stopWatching(); runId = id; summary = null;
+  $('viewNew').hidden = true; $('viewRun').hidden = false; $('readyBanner').hidden = true;
+  $('log').innerHTML = ''; $('versions').innerHTML = ''; $('rTitle').textContent = '…'; $('now').textContent = '';
+  ['numsCard', 'qualityCard', 'changeCard'].forEach(c => $(c).hidden = true);
+  $('suggest').innerHTML = SUGGEST.map(s => `<button type="button" class="chip">${esc(s)}</button>`).join('');
+  document.querySelectorAll('#suggest .chip').forEach(b => b.onclick = () => { $('ctext').value = b.textContent; $('ctext').focus(); });
+  loadRuns(); refresh();
+  es = new EventSource(`/api/runs/${encodeURIComponent(id)}/events`);
+  es.onmessage = (m) => {
+    const ev = JSON.parse(m.data); log(ev);
+    if (ev.kind === 'stage' || ev.kind === 'change') $('now').textContent = (ev.msg || '').replace(/^\w+: /, '');
+    if (['stage', 'done', 'change'].includes(ev.kind)) { refresh(); loadRuns(); }
+  };
+  // keep the elapsed time and status fresh even between events
+  timer = setInterval(() => { if (!summary || summary.status === 'running') refresh(); }, 5000);
+}
+function log(ev) {
+  const d = document.createElement('div'); d.className = ev.kind;
+  d.textContent = `${new Date(ev.ts * 1000).toLocaleTimeString()}  ${ev.msg || ev.stage || ev.agent || ''}`;
+  $('log').appendChild(d);
+  if ($('logBox').open) $('log').scrollTop = $('log').scrollHeight;
+}
+async function refresh() {
+  if (!runId || refreshing) return;
+  refreshing = true;
+  try {
+    const r = await fetch(`/api/runs/${encodeURIComponent(runId)}`);
+    if (!r.ok) { $('rTitle').textContent = 'Explainer not found'; return; }
+    const prev = summary;
+    summary = await r.json();
+    render(summary);
+    // the run finished while this tab was watching it -> open the explainer
+    if (prev && prev.run_id === summary.run_id && prev.status === 'running' && summary.status === 'complete' && summary.published)
+      openExplainer(summary, true);
+  } catch { /* server restarting: try again on the next tick */ }
+  finally { refreshing = false; }
+}
+function render(s) {
+  $('rTitle').textContent = s.title || s.topic;
+  $('rField').textContent = s.field || '';
+  $('rBadge').className = 'badge ' + s.status;
+  $('rBadge').textContent = STATUS_LABEL[s.status] || s.status;
+  $('rElapsed').textContent = s.elapsed_s ? (s.status === 'running' ? 'running for ' : 'took ') + dur(s.elapsed_s) : '';
+  $('rId').textContent = '· ' + s.run_id;
+  if (s.status === 'complete') $('now').textContent = s.published ? 'Done: the explainer is published and every check has run.' : 'Done.';
+  else if (s.status === 'failed') $('now').textContent = 'Stopped with an error. Open "Show details" below to see why.';
+  else if (s.status === 'stopped') $('now').textContent = 'This run stopped before finishing.';
+  else if (!$('now').textContent) $('now').textContent = s.last_msg || 'Starting…';
+
+  // actions
+  const best = s.best || s.version;
+  $('rActions').innerHTML = s.published
+    ? `<a href="${s.explainer}" target="_blank"><button class="primary">Open explainer ↗</button></a>
+       <a href="${s.explainer}#proof" target="_blank"><button class="ghost">How it was checked</button></a>`
+    : (s.explainer ? `<a href="${s.explainer}" target="_blank"><button class="ghost">Preview v${s.version} ↗</button></a>` : '');
+
+  // stepper
+  const seen = new Set((s.stages_seen || []).map(x => STEP_OF[x]).filter(x => x !== undefined));
+  const cur = s.current in STEP_OF ? STEP_OF[s.current] : Math.max(-1, ...seen);
+  $('steps').innerHTML = STEPS.map((label, i) => {
+    let cls = '';
+    if (s.status === 'complete' && s.published) cls = 'done';
+    else if (i < cur || (seen.has(i) && i !== cur)) cls = 'done';
+    else if (i === cur) cls = s.status === 'running' ? 'active' : s.status === 'failed' ? 'failed' : 'done';
+    return `<div class="step ${cls}"><div class="dot">${cls === 'done' ? '✓' : cls === 'failed' ? '!' : i + 1}</div>${label}</div>`;
+  }).join('');
+
+  // at a glance
+  const n = s.numbers || {};
+  const cards = [];
+  if (n.sources != null) cards.push([n.sources, 'sources read']);
+  if (n.citations_total) cards.push([`${n.citations_verified}<small>/${n.citations_total}</small>`, 'quotes verified word for word']);
+  if (n.video_hours) cards.push([`${n.video_hours}<small> h</small>`, 'of video watched']);
+  if (n.first && n.best) cards.push([`${n.first.high}<small> → ${n.best.high}</small>`, 'serious problems: first draft → published']);
+  if (n.versions) cards.push([n.versions, 'versions built and checked']);
+  $('numsCard').hidden = !cards.length;
+  $('nums').innerHTML = cards.map(([v, l]) => `<div class="num"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+
+  // quality by version
+  const table = s.table || [];
+  $('qualityCard').hidden = !table.length;
+  if (table.length) {
+    $('table').innerHTML = '<tr><th>Version</th>' + LAYERS.map(([, l]) => `<th>${l}</th>`).join('') + '<th>Total</th><th></th></tr>' +
+      table.map(r => {
+        const isBest = best && r.version === 'v' + best;
+        const v = (s.versions || {})[r.version.slice(1)] || {};
+        const note = v.change_request ? `change: ${v.change_request.slice(0, 40)}${v.change_request.length > 40 ? '…' : ''}`
+                                      : (r.version === 'v1' ? 'first draft' : 'automatic fix');
+        return `<tr class="${isBest ? 'best' : ''}"><td><b>${r.version}</b>${isBest ? ' · published' : ''}</td>` +
+          LAYERS.map(([k]) => { const x = r.layers[k]; const t = x.high + x.medium + x.low;
+            return t ? `<td>${t}${x.high ? ` <span class="hi">(${x.high} serious)</span>` : ''}</td>` : '<td class="z">0</td>'; }).join('') +
+          `<td><b>${r.total}</b></td><td class="small muted">${esc(note)}</td></tr>`;
+      }).join('');
+  }
+
+  // change requests
+  $('changeCard').hidden = !s.version;
+  $('cgo').disabled = s.status === 'running';
+  $('ctext').placeholder = s.status === 'running' ? 'Available when the run finishes' : 'e.g. make the labels bigger in the first figure';
+  const reqs = Object.entries(s.versions || {}).filter(([, v]) => v.change_request)
+    .sort((a, b) => (b[1].status === 'ready') - (a[1].status === 'ready') || b[0] - a[0]);
+  Promise.all(reqs.map(([k]) => fetch(`/api/runs/${encodeURIComponent(runId)}/versions/${k}`).then(r => r.json())))
+    .then(cs => { if (s.run_id === runId) $('versions').innerHTML = cs.map(card).join(''); });
+}
+function card(v) {
+  const label = {ready: 'Passed the checks: waiting for your approval', rejected: 'Rejected by the checks', published: 'Approved and published',
+                 approved: 'Approved (a later version is published)', discarded: 'Discarded', checking: 'Checking…'}[v.status] || 'Applied';
+  const cls = {ready: 'ready', rejected: 'failed', published: 'complete', approved: 'complete', checking: 'running'}[v.status] || '';
+  const fs = (v.new_findings || []).filter(f => f.severity !== 'low');
+  return `<div class="ver ${esc(v.status)}">
+    <div class="row"><b>v${v.version}</b><span class="badge ${cls}">${esc(label)}</span>
+      <span class="small muted">${v.seconds ? 'checked in ' + Math.round(v.seconds) + ' s' : ''}${(v.figures || []).length ? ' · figures ' + esc(v.figures.join(', ')) : ''}</span></div>
+    <p style="margin:8px 0 0">“${esc(v.change_request)}”</p>
+    ${(v.clips || []).slice(0, 2).map(c => `<div class="pair">
+        <div><video src="${c.before}" muted loop autoplay playsinline></video><p>Before (v${v.from}) · ${esc(c.figure)} · ${esc(c.sweep)}</p></div>
+        <div><video src="${c.after}" muted loop autoplay playsinline></video><p>After (v${v.version}) · ${esc(c.figure)} · ${esc(c.sweep)}</p></div></div>`).join('')}
+    ${fs.length ? `<ul>${fs.slice(0, 5).map(f => `<li><b class="${f.severity === 'high' ? 'hi' : ''}">${f.severity === 'high' ? 'serious' : 'minor'}</b> · ${esc(f.figure || 'page')}: ${esc(f.what)}<br><span class="small muted">${esc(String(f.evidence || '').slice(0, 200))}</span></li>`).join('')}</ul>`
+                : (v.status === 'checking' ? '' : '<p class="small muted" style="margin:8px 0">No problems found in the changed figures.</p>')}
+    <div class="row" style="margin-top:8px">
+      <a href="${v.page}" target="_blank" class="small">Preview v${v.version} ↗</a><span style="flex:1"></span>
+      ${v.status === 'ready' ? `<button class="ghost" onclick="decide(${v.version}, 'discard')">Discard</button><button class="ok" onclick="decide(${v.version}, 'approve')">Approve &amp; publish</button>` : ''}
+      ${v.status === 'rejected' ? `<button class="ghost" onclick="decide(${v.version}, 'discard')">Dismiss</button>` : ''}
+    </div></div>`;
+}
+async function decide(n, action) {
+  // open the tab inside the click (popup blockers allow that), then point it at the page once it's published
+  const w = action === 'approve' ? window.open('about:blank', '_blank') : null;
+  const r = await fetch(`/api/runs/${encodeURIComponent(runId)}/versions/${n}/${action}`, { method: 'POST' });
+  const j = await r.json();
+  if (!r.ok) { toast(`Couldn't ${action}: ${j.detail || r.status}`); if (w) w.close(); }
+  else {
+    toast(action === 'approve' ? `v${n} is now published` : `v${n} discarded`);
+    if (w && j.explainer) { w.location = j.explainer + '?v=' + n; markOpened(runId); }
+  }
+  refresh(); loadRuns();
+}
+$('changeForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const text = $('ctext').value.trim();
-  if (!text || !runId) return;
+  if (!text) { $('ctext').focus(); return; }
   $('cgo').disabled = true;
-  const r = await fetch(`/api/runs/${runId}/change`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+  const r = await fetch(`/api/runs/${encodeURIComponent(runId)}/change`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
   const j = await r.json();
-  if (!r.ok) { log({ ts: Date.now() / 1000, kind: 'error', msg: 'change refused: ' + (j.detail || r.status) }); $('cgo').disabled = false; }
-  else { $('ctext').value = ''; refresh(); }
+  if (!r.ok) { toast('Change not started: ' + (j.detail || r.status)); $('cgo').disabled = false; return; }
+  $('ctext').value = ''; toast('Working on it: about 1–2 minutes');
+  refresh(); loadRuns();
 });
-loadTopics(); loadRuns();
-const h = location.hash.slice(1); if (h) watch(h);
+
+setInterval(loadRuns, 10000);
+loadRuns(); route();
 </script>
 </body>
 </html>

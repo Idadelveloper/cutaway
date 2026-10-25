@@ -1,0 +1,105 @@
+name: bst
+title: How binary search trees work
+field: computer science
+for: [students, teachers]
+prompt: >
+  Explain binary search trees from the ground up: why sorted data enables fast lookup (binary search),
+  the BST property (left < node < right), inserting keys, searching step by step, in-order traversal
+  giving sorted output, how insertion order changes the shape (balanced vs a degenerate chain), why
+  height decides speed (O(log n) vs O(n)), deleting a node (leaf, one child, two children with the
+  in-order successor), and how self-balancing trees (AVL rotations) keep the height logarithmic.
+audience: >
+  First- and second-year computer science students and self-taught programmers. Comfortable with
+  arrays and recursion; new to trees. Code snippets are short and optional.
+
+figure_count: [8, 12]
+figure_hints:
+  - "Binary search on a sorted array: halving the range"
+  - "From halving to a tree: the BST property"
+  - "Inserting keys one by one"
+  - "Searching: one comparison per level"
+  - "In-order traversal reads keys in sorted order"
+  - "Insertion order changes the shape: balanced vs a chain"
+  - "Height decides speed: O(log n) vs O(n)"
+  - "Deleting a node (leaf, one child, two children)"
+  - "Rotations and AVL balance"
+  - "Everything together: a self-balancing tree under random inserts"
+hero: >
+  A 3D binary search tree of ~15 keys, nodes as spheres and links as tubes, laid out by depth.
+  Drag to orbit. A slider grows the tree key by key; play/pause animates a search path lighting up.
+
+law_checks:
+  bst_order:
+    text: "every node's left subtree keys are smaller and right subtree keys are larger; in-order keys are sorted"
+    params: {}
+  tree_height:
+    text: "reported height and node count match the actual tree"
+    params: {}
+  search_path:
+    text: "a search visits exactly the nodes on the comparison path from the root"
+    params: {}
+  avl_balance:
+    text: "with AVL balancing on, every node's subtree heights differ by at most one"
+    params: {}
+  controls_affect_probes:
+    text: "each control changes at least one measured probe"
+    params: {}
+
+probes:
+  - node_keys
+  - left_index
+  - right_index
+  - root_index
+  - inorder_keys
+  - tree_height
+  - node_count
+  - search_key
+  - search_path
+  - search_found
+  - comparisons
+  - balanced
+
+model_notes: |
+  - One shared pure model: given controls (keys to insert or n_keys + insertion order/seed, search_key,
+    balanced on/off, step), build the tree deterministically and return its state. No randomness without a seed.
+  - Represent the tree as parallel arrays: node_keys[i], left_index[i], right_index[i] (-1 = no child),
+    root_index (-1 = empty). Expose them as probes (arrays of numbers), plus inorder_keys (actual in-order
+    traversal), tree_height (nodes on the longest root-to-leaf path; empty = 0) and node_count.
+  - Searching animates over time: search_path holds the keys visited so far (a prefix of the true path:
+    go left if smaller, right if larger, stop when equal); search_found = 1/0 once the search ends;
+    comparisons = len(search_path).
+  - balanced = 1 when AVL mode is on: rebalance with rotations after each insert so every node's subtree
+    heights differ by at most 1.
+  - Keys are distinct integers.
+
+spec_notes: |
+  - Tree figures expose node_keys, left_index, right_index, root_index, tree_height and node_count and list
+    bst_order and tree_height. Search figures also expose search_key, search_path, search_found and list search_path.
+  - Every figure needs a control that changes the tree or the search (keys, insertion order, search key, AVL on/off).
+
+palette:
+  grey: "#c9ccd1"
+  ink: "#22252a"
+  node: "#2f7de1"
+  root: "#7b4fd6"
+  path: "#e0533d"
+  found: "#1fa37a"
+  left: "#e3a21a"
+  right: "#d64f9a"
+  rotation: "#9c7a5b"
+  array: "#8fb8de"
+
+source_mix:
+  - university course notes and open textbooks (e.g. Open Data Structures, MIT OpenCourseWare)
+  - original papers (e.g. Adelson-Velsky and Landis 1962 on AVL trees) and reference texts
+  - quality tutorials and visualizations from universities
+
+research_focus:
+  - the BST property; insert, search and delete (including the in-order successor case)
+  - in-order traversal; height vs number of nodes; best and worst case shapes
+  - time complexity of search/insert/delete for balanced vs degenerate trees
+  - AVL balance factor and the four rotation cases
+
+scout_checks:
+  - insert 1..15 in order gives height 15; inserting the same keys in a balanced order gives height 4
+  - a random-order BST of 1000 keys averages height near 2.99 ln n (simulate and report)

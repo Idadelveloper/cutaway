@@ -38,7 +38,7 @@ A single JSON object, no prose, no code fences:
   "topic": "...",
   "audience": "...",
   "entities": [
-    {"id": "snake_case", "kind": "e.g. microphone|speaker|chip|wave|particle_field|ear_cup|padding|ear_canal",
+    {"id": "snake_case", "kind": "what it is, e.g. microphone|valve|chamber|node|wave",
      "description": "...", "params": {"diameter_mm": 40, ...}, "color": "<palette name>",
      "cite": [{"source": "<id>", "where": "p.4 | fig.2 | 07:42", "quote": "verbatim snippet, <= 20 words"}]}
   ],
@@ -66,6 +66,6 @@ Requirements:
 - Every entity, law and figure has at least one citation; every video fact comes from a video source with a timestamp.
 - Every number in params comes from a cited source. If the sources don't give a number you need for drawing (e.g. a size), choose a plausible value and add it to "conflicts" with values ["none in sources"] and why you chose it.
 - Every figure except purely structural ones has at least one control that changes the physics (frequency, delay, amplitude, mic on/off, mode), not just the camera.
-- Figures that show waves at the ear expose p_noise_ear, p_anti_ear, p_total_ear and list the superposition laws.
+{{spec_notes}}
 - When sources disagree, pick one value, and list the disagreement in "conflicts".
 - Cite every fact; if the sources don't support a fact, leave it out or mark it as a conflict.

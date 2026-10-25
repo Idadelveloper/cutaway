@@ -99,10 +99,12 @@ ENT_WORDS_JS = """
 """
 
 
-async def scroll_capture(page, out: dict[str, Path]) -> None:
+async def scroll_capture(page, out: dict[str, Path], video: bool = True) -> None:
     words = await page.evaluate(ENT_WORDS_JS)
     (out["render"] / "ent_words.json").write_text(json.dumps(words, indent=1))
     (out["render"] / "page_text.txt").write_text(await page.evaluate("document.body.innerText"))
+    if not video:
+        return
     await page.evaluate("window.scrollTo(0, 0); window.__cutaway.playAll()")
     await page.screenshot(path=str(out["render"] / "page.png"), full_page=True)
     height = await page.evaluate("document.documentElement.scrollHeight - window.innerHeight")
@@ -119,7 +121,9 @@ async def scroll_capture(page, out: dict[str, Path]) -> None:
 
 
 async def render_version(version_dir: Path, run_dir: Path, version: int, spec: Spec,
-                         run_id: str | None = None, keep_frames: bool = False) -> dict:
+                         run_id: str | None = None, keep_frames: bool = False,
+                         figures: list[str] | None = None, scroll_video: bool = True) -> dict:
+    """Render every figure, or only `figures`; scroll_video=False skips the page screenshot + scroll clip."""
     v = f"v{version}"
     out = {k: run_dir / k / v for k in ("traces", "clips", "keyframes", "render", "frames")}
     for p in out.values():
@@ -128,7 +132,8 @@ async def render_version(version_dir: Path, run_dir: Path, version: int, spec: S
     all_logs: dict[str, list] = {}
     results: list[dict] = []
     queue: asyncio.Queue = asyncio.Queue()
-    for f in spec.figures:
+    todo = [f for f in spec.figures if figures is None or f.id in figures]
+    for f in todo:
         queue.put_nowait(f)
 
     with serve(version_dir) as base:
@@ -166,12 +171,12 @@ async def render_version(version_dir: Path, run_dir: Path, version: int, spec: S
                         pass
 
         retried: set[str] = set()
-        n = min(PARALLEL_PAGES, len(spec.figures))
+        n = max(1, min(PARALLEL_PAGES, len(todo)))
         await asyncio.gather(*(worker(k) for k in range(n)))
         async with browser() as b:
             page, logs = await fresh_page(b, n)
             try:
-                await scroll_capture(page, out)
+                await scroll_capture(page, out, video=scroll_video)
             except Exception as e:
                 events.emit(run_id, "error", stage="render", msg=f"scroll capture failed: {e!r}"[:300])
             all_logs["scroll"] = logs
@@ -190,7 +195,7 @@ async def render_version(version_dir: Path, run_dir: Path, version: int, spec: S
     console = [{"page": k, **l} for k, ls in all_logs.items() for l in ls]
     (out["render"] / "console.json").write_text(json.dumps(console, indent=1))
     timing = {
-        "figures": len(spec.figures), "sweeps": len(ok), "frames": len(ok) * FRAMES,
+        "figures": len(todo), "sweeps": len(ok), "frames": len(ok) * FRAMES,
         "capture_s": round(t_capture, 1), "total_s": round(time.time() - t0, 1),
         "per_sweep": [{k: r[k] for k in ("figure", "sweep", "p95_ms", "max_ms")} for r in ok],
         "errors": [r for r in results if "error" in r],

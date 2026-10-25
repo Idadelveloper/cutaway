@@ -95,7 +95,8 @@ def test_merge_dedupes_and_ranks():
         {"title": "Vid", "url": "https://www.youtube.com/watch?v=abc&t=10", "type": "article"}]})
     b = DiscoveryOutput.model_validate({"sources": [
         {"title": "Paper again", "url": "http://arxiv.org/pdf/1/", "type": "paper", "text": "full text"},
-        {"title": "Mfr", "url": "https://chipmaker.com/appnote", "type": "manufacturer"}],
+        {"title": "Mfr", "url": "https://chipmaker.com/appnote", "type": "manufacturer"},
+        {"title": "Redirect", "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZ", "type": "article"}],
         "skipped": [{"url": "https://paywalled.com", "reason": "paywall"}]})
     srcs, texts, skipped = merge({"search": a, "scout": b}, [])
     ids = [s.id for s in srcs]
@@ -105,6 +106,9 @@ def test_merge_dedupes_and_ranks():
     assert paper.found_by == ["search", "scout"] and texts[paper.id] == "full text"
     assert "V1" in ids and "B1" in ids and "M1" in ids        # youtube link typed as video
     assert skipped[0]["reason"] == "paywall"
+    assert any("redirect" in k["reason"] for k in skipped) and not any("vertexaisearch" in s.url_or_file for s in srcs)
+    from cutaway.agents.research import clean_text
+    assert clean_text("ok \udc5b text") == "ok ? text"
     assert norm_url("http://www.x.com/a/?utm_medium=y&q=1#frag") == "https://x.com/a?q=1"
 
 

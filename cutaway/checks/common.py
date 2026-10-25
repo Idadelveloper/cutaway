@@ -108,7 +108,8 @@ def _rgb(s: str) -> tuple[int, int, int] | None:
     return tuple(int(m.group(1)[i:i + 2], 16) for i in (0, 2, 4)) if m else None
 
 
-def check_color_words(spec: Spec, words: list[dict], ids: Ids) -> list[Finding]:
+def check_color_words(spec: Spec, words: list[dict], ids: Ids, palette: dict[str, str] | None = None) -> list[Finding]:
+    palette = palette or config.PALETTE
     out = []
     ents = {e.id: e for e in spec.entities}
     figs = {f.id for f in spec.figures}
@@ -123,11 +124,11 @@ def check_color_words(spec: Spec, words: list[dict], ids: Ids) -> list[Finding]:
             out.append(Finding(id=ids(), layer="interaction", severity="low", figure=w["figure"], time=None,
                                what=f"colored word '{w['text']}' links to unknown figure", evidence=str(w),
                                fix_hint="use a spec figure id"))
-        want, got = _rgb(config.PALETTE.get(e.color, "")), _rgb(w.get("color", ""))
+        want, got = _rgb(palette.get(e.color, "")), _rgb(w.get("color", ""))
         if want and got and max(abs(a - b) for a, b in zip(want, got)) > 24:
             out.append(Finding(id=ids(), layer="interaction", severity="medium", figure=w.get("figure"), time=None,
                                what=f"colored word '{w['text']}' is {w['color']}, entity '{e.id}' is {e.color} "
-                                    f"({config.PALETTE[e.color]})", evidence=str(w),
+                                    f"({palette[e.color]})", evidence=str(w),
                                fix_hint="color entity words with the entity's palette color"))
     return out
 

@@ -74,6 +74,7 @@ async def fix_version(state: RunState, src_version: int, new_version: int, fs: l
     prompt = config.load_prompt(
         "fix", findings=block, extra=extra, spec=json.dumps(state.spec.model_dump(mode="json"), indent=1),
         model_notes=state.topic.get("model_notes", ""), contract=config.CONTRACT_PATH.read_text(),
+        palette=config.palette_table(state.topic),
         files="\n\n".join(f"=== {name} ===\n{text}" for name, text in files.items()))
     out, _ = await llm.call_model(BuildOutput, stage=f"fix_v{new_version}", model=config.ARGON, thinking="high",
                                   background=True, max_output_tokens=config.LONG_OUTPUT_TOKENS,

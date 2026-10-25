@@ -5,6 +5,12 @@ First, plan: decide the page outline, which shared helpers you need, how model.j
 ## Spec (the only source of facts; cite with superscript source ids linking to the Sources section)
 {{spec}}
 
+## Hero figure
+{{hero}}
+
+## Topic palette (color name -> hex)
+{{palette}}
+
 ## Style rules
 {{style}}
 

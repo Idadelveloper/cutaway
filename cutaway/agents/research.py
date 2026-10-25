@@ -54,7 +54,8 @@ def texts_dir(state: RunState) -> Path:
 
 async def search_discoverer(state: RunState) -> DiscoveryOutput:
     t = state.topic
-    prompt = config.load_prompt("discover_search", title=t["title"], prompt=t["prompt"], questions=_questions(state))
+    prompt = config.load_prompt("discover_search", title=t["title"], prompt=t["prompt"], questions=_questions(state),
+                                **config.research_fields(t))
     # Tool syntax from google-genai 2.33.0 types: GoogleSearch type "google_search", UrlContext type "url_context".
     out, _ = await llm.call_model(DiscoveryOutput, stage="discover_search", model=config.ARGON, thinking="medium",
                                   input=prompt, tools=[{"type": "google_search"}, {"type": "url_context"}],
@@ -64,7 +65,8 @@ async def search_discoverer(state: RunState) -> DiscoveryOutput:
 
 async def web_researcher(state: RunState) -> DiscoveryOutput:
     t = state.topic
-    prompt = config.load_prompt("web", title=t["title"], prompt=t["prompt"], questions=_questions(state))
+    prompt = config.load_prompt("web", title=t["title"], prompt=t["prompt"], questions=_questions(state),
+                                **config.research_fields(t))
     report = await llm.call(stage="deep_research", agent=config.DEEP_RESEARCH, input=prompt, run_id=state.run_id)
     (research_dir(state) / "deep_research_report.md").write_text(report.text)
     out, _ = await llm.call_model(DiscoveryOutput, stage="deep_research_extract", model=config.FLASH,
@@ -74,7 +76,8 @@ async def web_researcher(state: RunState) -> DiscoveryOutput:
 
 
 async def source_scout(state: RunState) -> DiscoveryOutput:
-    prompt = config.load_prompt("scout", title=state.topic["title"], questions=_questions(state))
+    prompt = config.load_prompt("scout", title=state.topic["title"], questions=_questions(state),
+                                **config.research_fields(state.topic))
     out, _ = await llm.call_model(
         ScoutOutput, stage="scout", agent=config.ANTIGRAVITY,
         agent_config={"type": "antigravity", "model": config.ARGON}, environment="remote",
@@ -106,6 +109,10 @@ def merge(found: dict[str, DiscoveryOutput], seeds: list[Source]) -> tuple[list[
         skipped += [{**k, "found_by": who} for k in out.skipped]
         for d in out.sources:
             if not d.url.startswith("http"):
+                continue
+            if "grounding-api-redirect" in d.url:   # opaque search redirect, not the page itself
+                skipped.append({"url": d.url[:120], "reason": "search redirect link, no direct URL", "found_by": who,
+                                "title": d.title})
                 continue
             key = norm_url(d.url)
             typ = "video" if VIDEO_URL.search(d.url) else d.type
@@ -168,10 +175,23 @@ async def collect_texts(state: RunState, srcs: list[Source], scout_texts: dict[s
             s.status, s.skip_reason = "skipped", reason or "no text"
             events.emit(state.run_id, "info", stage="research", msg=f"skip {s.id} {s.url_or_file}: {s.skip_reason}")
 
-    await asyncio.gather(*(one(s) for s in srcs))
+    async def guarded_one(s: Source) -> None:
+        try:
+            await one(s)
+        except Exception as e:
+            s.status, s.skip_reason = "skipped", f"text error: {type(e).__name__}"
+            events.emit(state.run_id, "info", stage="research", msg=f"skip {s.id} {s.url_or_file}: {e!r}"[:300])
+
+    await asyncio.gather(*(guarded_one(s) for s in srcs))
+
+
+def clean_text(text: str) -> str:
+    """Drop lone surrogates and other unencodable characters (seen in some PDF extractions and agent JSON)."""
+    return text.encode("utf-8", "replace").decode("utf-8")
 
 
 def store_text(state: RunState, s: Source, text: str) -> None:
+    text = clean_text(text)
     p = texts_dir(state) / f"{s.id}.txt"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(text)
@@ -224,13 +244,20 @@ class Research(Stage):
         rdir.mkdir(parents=True, exist_ok=True)
         seeds = discover_seeds(state.topic["sources_dir"])
 
-        jobs = {"search": search_discoverer(state), "deep_research": web_researcher(state),
-                "scout": source_scout(state)}
-        stage_event(state, "research", f"discovery: {', '.join(jobs)} in parallel + {len(seeds)} seeds")
+        makers = {"search": search_discoverer, "deep_research": web_researcher, "scout": source_scout}
+        found: dict[str, DiscoveryOutput] = {}
+        for n in makers:   # a resumed run reuses discoverer output it already saved
+            p = rdir / f"discover_{n}.json"
+            if p.exists():
+                found[n] = DiscoveryOutput.model_validate_json(p.read_text())
+        jobs = {n: f(state) for n, f in makers.items() if n not in found}
+        stage_event(state, "research", f"discovery: {', '.join(jobs) or 'none'} in parallel"
+                                       f"{f' (reusing saved {sorted(found)})' if found else ''} + {len(seeds)} seeds")
         results = await asyncio.gather(*(guarded(state, n, c) for n, c in jobs.items()))
-        found = {n: o for n, o in zip(jobs, results) if o is not None}
+        found |= {n: o for n, o in zip(jobs, results) if o is not None}
         for n, o in found.items():
-            save_json(rdir / f"discover_{n}.json", o)
+            if n in jobs:
+                save_json(rdir / f"discover_{n}.json", o)
         if not found and not seeds:
             raise RuntimeError("all discoverers failed and there are no seed sources")
 

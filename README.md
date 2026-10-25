@@ -2,7 +2,31 @@
 
 Cutaway researches a concept from real sources (papers, patents, manufacturer docs, articles and long videos), writes a cited spec, and generates a complete interactive 3D explainer in one pass. It then **renders the explainer, measures it, watches it against the reference sources, and fixes it in a loop** until the checks pass.
 
-The demo topic is **how noise-cancelling headphones work** (`topics/anc/`).
+**Who it's for:**
+- **Students**, who learn a hard concept by playing with it: dragging a slider and watching the physiology, physics or algorithm respond.
+- **Teachers** preparing a lesson, who need an interactive explainer that is actually correct.
+- **Hardware documentation teams**, who need an accurate, cited "how it works" page for a product.
+
+All of them need more than a plausible-looking animation: they need evidence that the behavior, the numbers and the pictures match the sources. Cutaway publishes that evidence with every explainer.
+
+## Topics
+
+| Topic | Field | What the law checks measure on every rendered frame |
+|---|---|---|
+| `anc`: how noise-cancelling headphones work | physics / engineering | wave speed (f·λ = 343 m/s), superposition, cancellation at zero delay, residual = 2·\|sin(πfτ)\| with delay, phase flip, particles oscillating without drift |
+| `heart`: how the heart pumps blood | anatomy and physiology | valves open only when upstream pressure is higher; mitral and aortic valves never open together; constant volume when both are closed; filling and ejection flow the right way; SV = EDV − ESV and CO = HR × SV; cycle period = 60 / HR |
+| `bst`: how binary search trees work | computer science | the BST property and sorted in-order traversal; height and node count match the structure; a search follows the comparison path; AVL balance when balancing is on |
+
+Every topic also checks that each control changes something measurable, plus the generic checks (NaN, console errors, visibility, colored words, frame time) and the fidelity and watched reviews.
+
+**Adding a topic:** create `topics/<name>/topic.yaml` with:
+- the brief, audience and outline;
+- the hero line and palette;
+- the probes, model notes and spec notes;
+- the research focus and the SourceScout checks;
+- the `law_checks` it uses.
+
+If it needs new kinds of laws, add a module in `cutaway/checks/` that registers `CHECKS = {name: fn}` and include it in `checks/registry.py`. Seed sources in `sources/<name>/` are optional. Then run `make all TOPIC=<name>`.
 
 Built at the Gemini 4 Argon SF hackathon (problem statement Two: "More Dimensions").
 
@@ -77,6 +101,8 @@ make test            # unit tests (checks, citations, contract, render, full fak
 
 Add `ARGS="--run-id <id>"` to resume an existing run; finished stages are skipped.
 
+When a run finishes, the published explainer opens in your browser automatically. From the CLI it opens by its absolute path (`file://…/runs/<id>/final/index.html`; pass `--no-open` to skip). In the web UI, the explainer opens in a new tab when the run you're watching completes, and when you approve a change. If the browser blocks the tab, a banner shows an Open button and the file path.
+
 **Fake mode:** `CUTAWAY_FAKE=1 make all` replays saved model responses from `fixtures/` instead of calling the API. It's fast and free, which makes it useful for testing the pipeline. Each real call that succeeds is saved as a fixture, and so is each fetched page. `fixtures/` and `cache/` are git-ignored, because they contain full third-party texts. The unit tests don't need them: they write their own made-up fixtures to a temp directory.
 
 ## Server
@@ -87,7 +113,9 @@ Add `ARGS="--run-id <id>"` to resume an existing run; finished stages are skippe
 |---|---|
 | `POST /runs` (or `/api/runs`) | Start a run: topic, plus optional uploaded files and URLs |
 | `GET /runs/<id>/events` | Live progress as server-sent events |
-| `POST /runs/<id>/change` | Change request, e.g. `{"text": "make the chip 1 ms slower"}`. The Fixer applies it, then the page is re-rendered and re-checked. It is only accepted if the checks pass. |
+| `POST /runs/<id>/change` | Change request, e.g. `{"text": "make the chip 1 ms slower"}`. Quick mode (the default) runs in about 2–3 min: Flash scopes it to the affected figures and files, Argon (medium thinking) edits only those files, only those figures are re-rendered, and the code checks, fidelity and a watched review run on them. A version that passes is marked **ready**; failing versions are **rejected**. `{"mode": "full"}` uses the full Fixer on every file. |
+| `GET /api/runs/<id>/versions/<n>` | A version's status, new findings, and before/after clips |
+| `POST /api/runs/<id>/versions/<n>/approve` / `discard` | **A human decides.** Only an approved version is published; nothing a change request makes goes live on its own. |
 | `GET /api/runs`, `GET /api/runs/<id>` | Run list and summary (versions, findings table, explainer link) |
 | `/runs/<id>/final/` | The published explainer with its proof section |
 
@@ -163,6 +191,21 @@ Full v3           0 (0H)        0 (0H)        0 (0H)        0 (0H)        4 (0H)
 - **The fix loop makes the biggest difference** (weighted 124 → 5).
 - **Research mainly improves the physics:** A's page fails 4 high-severity law checks (the anti-noise leaves 11% and 18% residual where the limit is 5%, and a control changes nothing). B has none.
 - Caveat: both pages darken the amber and grey word colors to keep text readable on white. The color-word check (tolerance 24 per RGB channel) counts that as a medium finding.
+
+### Live change request in under 3 minutes
+
+Measured on the real run, through the server, with the request "In the frequency and wavelength figure, show the wavelength readout in both meters and centimeters":
+
+```
+[  0.0s] change request on v5 -> v6
+[  3.1s] scope: figures F3; files figures/F3.js            (Flash)
+[ 54.1s] fixer changed figures/F3.js                         (Argon, medium thinking, 4.8k output tokens)
+[ 69.7s] rendered 2 clips of F3 in 15.5s
+[ 85.2s] checked: code checks + fidelity + watched review of F3
+[ 85.2s] v6 passed the checks (0 high, was 0); waiting for approval
+```
+
+The published page doesn't change until someone clicks **Approve & publish** in the UI.
 
 Example fixes found by watching: in v1, F6's waves were frozen while the reference video (V2 01:46) shows the noise wave racing the chip; F9's foam padding hid the inner mic; F10's waves didn't move. All three were fixed in v2.
 

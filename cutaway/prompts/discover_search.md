@@ -6,12 +6,10 @@ Key questions:
 {{questions}}
 
 Find 25-40 sources, mixing:
-- peer-reviewed or preprint papers (open access PDFs preferred: arXiv, university repositories, open journals)
-- patents (Google Patents pages)
-- standards and manufacturer/engineering docs (application notes, white papers, datasheets from chip/headphone makers)
-- quality technical articles (engineering magazines, university pages, acoustics societies)
-- 2-5 videos (YouTube) that show the physics or a real teardown
-Prefer primary, technical sources. Skip paywalled or blocked pages and list them under "skipped".
+{{source_mix}}
+- 2-5 videos (YouTube) that show the concept clearly (animations, demonstrations, lectures)
+Prefer primary, authoritative sources. Skip paywalled or blocked pages and list them under "skipped".
+Give each source's real page URL (the address the page lives at, as opened with the URL context tool), never a search or grounding redirect link.
 
 Output a single JSON object only, no prose, no code fences:
 {

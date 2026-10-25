@@ -1,0 +1,113 @@
+name: heart
+title: How the heart pumps blood
+field: anatomy and physiology
+for: [students, teachers]
+prompt: >
+  Explain how the heart pumps blood, building up from the anatomy (four chambers, two circuits,
+  four one-way valves) to the left-heart cardiac cycle: atrial contraction, isovolumetric contraction,
+  ejection, isovolumetric relaxation and filling; why valves open and close (pressure differences);
+  the pressure-volume loop; stroke volume, ejection fraction and cardiac output; the heart sounds
+  (lub = AV valves closing, dub = semilunar valves closing); and how heart rate changes the cycle.
+audience: >
+  First-year nursing, medical and biology students, and high-school biology classes. Comfortable
+  with graphs; new to the cardiac cycle. Equations are short and optional.
+
+figure_count: [8, 12]
+figure_hints:
+  - "The heart as two pumps: right heart to lungs, left heart to body"
+  - "Four chambers and four one-way valves"
+  - "Valves open and close because of pressure differences"
+  - "Filling and atrial kick"
+  - "Isovolumetric contraction: pressure rises, volume doesn't"
+  - "Ejection into the aorta"
+  - "Isovolumetric relaxation and the heart sounds (lub, dub)"
+  - "The pressure-volume loop"
+  - "Stroke volume, ejection fraction and cardiac output"
+  - "Everything together: heart rate and exercise"
+hero: >
+  The whole heart. Drag to orbit. A slider cuts it open along the long axis to show the four
+  chambers and valves; play/pause the beating cycle.
+
+law_checks:
+  valve_pressure_logic:
+    text: "a valve is open only when upstream pressure exceeds downstream pressure"
+    params: {tol_mmhg: 2.0, max_violation_frac: 0.05}
+  valves_not_both_open:
+    text: "the mitral (inlet) and aortic (outlet) valves are never open at the same time"
+    params: {}
+  isovolumetric_volume:
+    text: "with both valves closed, ventricular volume is constant"
+    params: {tol_ml: 0.5}
+  volume_flow_direction:
+    text: "the ventricle fills only through the mitral valve and empties only through the aortic valve"
+    params: {tol_ml: 0.5}
+  stroke_volume:
+    text: "SV = EDV - ESV and cardiac output = heart rate x SV"
+    params: {tolerance: 0.02}
+  cycle_period:
+    text: "one cycle lasts 60 / heart rate seconds"
+    params: {tolerance: 0.10}
+  controls_affect_probes:
+    text: "each physiology control changes at least one measured probe"
+    params: {}
+
+probes:
+  - heart_rate_bpm
+  - lv_volume_ml
+  - lv_pressure_mmhg
+  - la_pressure_mmhg
+  - aortic_pressure_mmhg
+  - mitral_open
+  - aortic_open
+  - stroke_volume_ml
+  - edv_ml
+  - esv_ml
+  - ejection_fraction
+  - cardiac_output_l_min
+  - t_phys_s
+
+model_notes: |
+  - One shared left-heart model over the cycle with period T = 60 / heart_rate_bpm. Use cited values for
+    EDV (~120 ml), ESV (~50 ml), and typical pressures (LA ~5-12 mmHg, aortic ~80/120 mmHg).
+  - Phases in order: filling (mitral open), atrial kick (end of filling), isovolumetric contraction
+    (both closed, volume constant, LV pressure rising), ejection (aortic open, LV pressure >= aortic
+    pressure, volume falling to ESV), isovolumetric relaxation (both closed, volume constant, pressure falling).
+  - Valve states come from the pressures: mitral_open = 1 iff la_pressure_mmhg > lv_pressure_mmhg;
+    aortic_open = 1 iff lv_pressure_mmhg > aortic_pressure_mmhg. Never both open.
+  - stroke_volume_ml = edv_ml - esv_ml; ejection_fraction = stroke_volume_ml / edv_ml;
+    cardiac_output_l_min = heart_rate_bpm * stroke_volume_ml / 1000.
+  - Expose a time_scale control or probe so the cycle can be slowed for viewing; probes use the
+    physical time t_phys_s = t / time_scale, and every phase must last several rendered frames.
+  - 0/1 probes (mitral_open, aortic_open) are numbers, not booleans.
+
+spec_notes: |
+  - Figures about the cycle expose lv_volume_ml, lv_pressure_mmhg, la_pressure_mmhg, aortic_pressure_mmhg,
+    mitral_open and aortic_open, and list the valve and volume laws.
+  - Figures about output expose stroke_volume_ml, edv_ml, esv_ml, heart_rate_bpm and cardiac_output_l_min.
+
+palette:
+  grey: "#c9ccd1"
+  ink: "#22252a"
+  oxygenated: "#d6453d"
+  deoxygenated: "#3b6fd6"
+  muscle: "#c97b84"
+  valve: "#e3a21a"
+  pressure: "#7b4fd6"
+  volume: "#1fa37a"
+  electrical: "#e0b400"
+  vessel: "#9c7a5b"
+
+source_mix:
+  - open-access physiology textbooks (e.g. OpenStax Anatomy & Physiology) and university course notes
+  - review papers on cardiac mechanics and the pressure-volume loop
+  - clinical references and professional society pages (cardiology, physiology societies)
+
+research_focus:
+  - chamber and valve anatomy; pulmonary vs systemic circuits
+  - phases of the cardiac cycle with typical pressures (mmHg) and volumes (ml) at each phase boundary
+  - why valves open and close; heart sounds and their timing
+  - pressure-volume loop; stroke volume, ejection fraction, cardiac output; effect of heart rate
+
+scout_checks:
+  - cardiac output = 72 bpm x 70 ml = 5.04 L/min; ejection fraction = 70 / 120
+  - for a cycle at heart rates 60, 72 and 120 bpm, the period is 60 / HR

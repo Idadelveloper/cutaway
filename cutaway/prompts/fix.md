@@ -11,6 +11,9 @@ You are Fixer for Cutaway. Fix the generated explainer below so that the finding
 ## Physics model requirements
 {{model_notes}}
 
+## Topic palette (color name -> hex)
+{{palette}}
+
 ## Page contract (must stay intact)
 {{contract}}
 

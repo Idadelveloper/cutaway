@@ -53,7 +53,7 @@ def load_prompt(name: str, /, **values) -> str:
         text = text.replace("{{" + k + "}}", str(v))
     return text
 
-# Shared palette (names used in spec entity.color; hex used by STYLE.md and the builder)
+# Default palette (topics can override with `palette:` in topic.yaml)
 PALETTE = {
     "grey": "#c9ccd1",      # passive parts
     "ink": "#22252a",       # outlines, text
@@ -66,3 +66,27 @@ PALETTE = {
     "air": "#8fb8de",       # air particles (light blue)
     "padding": "#9c7a5b",   # passive padding (brown)
 }
+
+
+def palette(topic: dict | None) -> dict[str, str]:
+    """Topic palette (name -> hex); always includes grey and ink."""
+    pal = dict((topic or {}).get("palette") or PALETTE)
+    pal.setdefault("grey", PALETTE["grey"])
+    pal.setdefault("ink", PALETTE["ink"])
+    return pal
+
+
+def palette_table(topic: dict | None) -> str:
+    return "\n".join(f"- {name}: {hexv}" for name, hexv in palette(topic).items())
+
+
+def topic_text(topic: dict, key: str, default: str = "") -> str:
+    """A topic.yaml field as prompt text: lists become '- item' lines."""
+    v = topic.get(key, default)
+    return "\n".join(f"- {x}" for x in v) if isinstance(v, list) else str(v or "")
+
+
+def research_fields(topic: dict) -> dict[str, str]:
+    return {"source_mix": topic_text(topic, "source_mix", "- papers, standards, reference texts and quality articles"),
+            "research_focus": topic_text(topic, "research_focus"),
+            "scout_checks": topic_text(topic, "scout_checks", "- any key equation in the sources, checked numerically")}

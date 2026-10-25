@@ -36,6 +36,7 @@ def write_files(dst: Path, files: dict[str, str]) -> None:
 def build_prompt(state: RunState) -> str:
     return config.load_prompt(
         "build", style=config.STYLE_PATH.read_text(), contract=config.CONTRACT_PATH.read_text(),
+        hero=state.topic.get("hero", ""), palette=config.palette_table(state.topic),
         model_notes=state.topic.get("model_notes", ""),
         spec=json.dumps(state.spec.model_dump(mode="json"), indent=1))
 

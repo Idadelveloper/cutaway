@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from cutaway import config, scoring  # noqa: E402
+from cutaway import config, events, scoring  # noqa: E402
 from cutaway.agents.base import save_state  # noqa: E402
 from cutaway.agents.builder import Builder  # noqa: E402
 from cutaway.agents.render import Render  # noqa: E402
@@ -56,8 +56,10 @@ async def baseline_a(full: RunState, rebuild: bool) -> Path:
     t = full.topic
     prompt = config.load_prompt("build_baseline", title=t["title"], prompt=t["prompt"], audience=t["audience"],
                                 skeleton=skeleton(full.spec), style=config.STYLE_PATH.read_text(),
+                                palette=config.palette_table(t),
                                 contract=config.CONTRACT_PATH.read_text())
-    await run_pipeline(state, [Builder(max_contract_fixes=0, prompt=prompt), Render(), Review()])
+    async with events.lifecycle(run_id, "baseline"):
+        await run_pipeline(state, [Builder(max_contract_fixes=0, prompt=prompt), Render(), Review()])
     return d
 
 

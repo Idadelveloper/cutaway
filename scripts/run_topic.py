@@ -11,11 +11,12 @@ import argparse
 import asyncio
 import sys
 import time
+import webbrowser
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from cutaway import config, scoring, stats  # noqa: E402
+from cutaway import config, events, scoring, stats  # noqa: E402
 from cutaway.agents.pipeline import TARGETS, stages_for  # noqa: E402
 from cutaway.agents.root import run_pipeline  # noqa: E402
 from cutaway.schemas import RunState  # noqa: E402
@@ -55,6 +56,7 @@ async def main() -> None:
     ap.add_argument("--until", choices=TARGETS, default="publish")
     ap.add_argument("--run-id")
     ap.add_argument("--fresh-research", action="store_true", help="ignore cache/<topic>/research and redo it")
+    ap.add_argument("--no-open", action="store_true", help="don't open the finished explainer in the browser")
     a = ap.parse_args()
 
     if not config.FAKE and not config.api_key():
@@ -64,7 +66,8 @@ async def main() -> None:
     stages = stages_for(state, a.until, a.fresh_research)
     print(f"run {run_id} (fake={config.FAKE}): {' -> '.join(s.name for s in stages)}")
     t0 = time.time()
-    state = await run_pipeline(state, stages)
+    async with events.lifecycle(run_id):
+        state = await run_pipeline(state, stages)
     run = config.RUNS_DIR / run_id
     print(f"\ndone in {time.time() - t0:.1f}s -> {run}")
     if state.spec:
@@ -76,6 +79,11 @@ async def main() -> None:
             print("\nFindings per version\n" + scoring.format_table(rows))
         best = state.best_version or state.version
         print(f"\nexplainer: http://localhost:8000/runs/{run_id}/v{best}/  (make serve)")
+    final = (run / "final" / "index.html").resolve()
+    if final.exists():
+        print(f"published explainer: {final}")
+        if not a.no_open and not config.FAKE:
+            webbrowser.open_new_tab(final.as_uri())
 
 
 if __name__ == "__main__":

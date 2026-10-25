@@ -3,7 +3,7 @@
 Reproduce the *qualities* of a great long-form interactive engineering article, never its content. All prose is original; every fact comes from the spec and is cited.
 
 ## Structure
-- **Hero figure** at the top: the whole object (here: the headphone ear cup). Drag to orbit. A slider peels it open into a cutaway and exploded view. Play/pause.
+- **Hero figure** at the top: the whole object or system (the topic's hero line says which). Drag to orbit. A slider peels it open into a cutaway or exploded view (or, for abstract topics, unfolds the structure). Play/pause.
 - **8–12 figures, one idea each**, in the spec's order. Each figure builds on the previous one and introduces only what its `teaches` line says.
 - Short paragraphs before and after every figure: what to look at, what to try ("drag the delay slider to the right and watch the purple wave grow back").
 - **Every figure has at least one control that changes the physics** (frequency, delay, amplitude, mic on/off, mode), not only the camera.
@@ -14,19 +14,10 @@ Reproduce the *qualities* of a great long-form interactive engineering article, 
 - The span's text color is the entity's palette color. Hovering it calls `__cutaway.figure(fig).highlight(entityId)` for the nearest figure that shows the entity; leaving it clears the highlight (`highlight(null)`).
 - The same color is used for that entity everywhere: 3D material, plot line, legend, label.
 
-## Palette (spec color name → hex)
-| name | hex | use |
-|---|---|---|
-| grey | #c9ccd1 | passive parts (shell, headband, cushions) |
-| ink | #22252a | outlines, text, axes |
-| noise | #e0533d | incoming noise wave |
-| anti | #2f7de1 | anti-noise wave |
-| total | #7b4fd6 | what reaches the ear (sum) |
-| mic | #1fa37a | microphones |
-| chip | #e3a21a | processing chip |
-| speaker | #d64f9a | speaker / driver |
-| air | #8fb8de | air particles |
-| padding | #9c7a5b | passive padding / foam |
+## Palette
+- Use the **topic palette** given with the spec (color name → hex). Entity colors in the spec are palette names.
+- `grey` is for passive or background parts, `ink` for outlines, text and axes. Each discussed entity gets its own accent color.
+- For colored words in the prose, you may darken the accent slightly for legibility on white, but keep the hue.
 
 ## Illustration
 - White background. Light grey passive parts, **dark outlines** on every mesh (`THREE.EdgesGeometry` + `LineBasicMaterial` in ink), flat/toon shading (`MeshToonMaterial` or `MeshLambertMaterial` with `flatShading`), one accent color per discussed entity; everything else stays grey.

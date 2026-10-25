@@ -16,7 +16,7 @@ Each clip is 120 frames at 30 fps (4 s). "default" = controls at default values;
 ## Rubric: answer each question with "yes" or "no"
 1. Does the motion match the cited video facts (direction, relative speed, what the waveforms do)?
 2. Is every discussed entity visible and not hidden (by the shell, other parts, or off-screen)?
-3. Do the entity colors match the spec palette colors (noise #e0533d, anti #2f7de1, total #7b4fd6, mic #1fa37a, chip #e3a21a, speaker #d64f9a, air #8fb8de, padding #9c7a5b, passive grey #c9ccd1)?
+3. Do the entity colors match the spec palette colors ({{palette}})?
 4. Is the step understandable on its own (clear what is shown, labeled, readable at this size)?
 5. Does it introduce only what the outline says this figure teaches (nothing extra, nothing missing)?
 
