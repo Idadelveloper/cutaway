@@ -1,0 +1,62 @@
+name: anc
+title: How noise-cancelling headphones work
+prompt: >
+  Explain how active noise-cancelling (ANC) headphones work, from sound as air
+  pressure up to the full system: outer (feedforward) microphone, processing chip,
+  speaker producing anti-noise, the inner (feedback) microphone, why cancellation
+  works on low steady hums but not on voices, passive padding, and transparency mode.
+audience: >
+  Curious adults with no physics background beyond high school. Comfortable with
+  sliders and diagrams, not with equations; equations may appear as optional asides.
+
+figure_count: [8, 12]
+figure_hints:
+  - "Sound is air pressure: particles move back and forth without traveling"
+  - "Frequency and wavelength"
+  - "Two waves add"
+  - "Flipping a wave cancels it"
+  - "Inside the ear cup: outer mic, chip, speaker"
+  - "Delay ruins cancellation at higher pitches"
+  - "Why it works on engine hum but not voices, and passive padding"
+  - "The inner feedback mic"
+  - "Transparency mode"
+  - "Everything together"
+hero: >
+  The whole headphone ear cup; drag to orbit; a slider peels it open into a
+  cutaway and exploded view; play/pause.
+
+# Law checks available for this topic (implemented in cutaway/checks/acoustics.py).
+# The spec writer picks from these and fills params from cited sources.
+law_checks:
+  wave_speed:
+    text: "frequency x wavelength = speed of sound"
+    params: {speed_of_sound_m_s: 343, tolerance: 0.02}
+  superposition_add:
+    text: "pressure at the ear = noise pressure + anti-noise pressure"
+    params: {rel_tolerance: 1.0e-6}
+  superposition_cancel:
+    text: "with zero delay and ANC on, residual RMS <= 5% of noise RMS below the cutoff frequency"
+    params: {max_ratio: 0.05, cutoff_hz: 1000}
+  delay_residual:
+    text: "with delay tau, residual/noise RMS ~= 2|sin(pi f tau)|"
+    params: {tolerance: 0.10}
+  phase_flip:
+    text: "anti-noise is the inverted noise signal when delay is 0 (correlation <= -0.95)"
+    params: {max_corr: -0.95}
+  particles_oscillate:
+    text: "air particles oscillate about a fixed mean position; displacement is bounded"
+    params: {max_disp: 1.0, max_drift: 0.05}
+  controls_affect_probes:
+    text: "each physics control changes at least one measured probe"
+    params: {}
+
+# Probe names the model/page should expose (getState().probes)
+probes:
+  - p_noise_ear
+  - p_anti_ear
+  - p_total_ear
+  - particle_disp_max
+  - frequency_hz
+  - wavelength_m
+  - delay_s
+  - residual_ratio

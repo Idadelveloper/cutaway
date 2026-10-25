@@ -86,6 +86,7 @@ class RunState(BaseModel):
     run_id: str
     topic: dict
     flags: dict = Field(default_factory=dict)
+    sources: list[dict] = Field(default_factory=list)   # Source dicts
     research: dict = Field(default_factory=dict)   # job name -> output (dict)
     plan: dict | None = None
     spec: Spec | None = None
@@ -94,3 +95,37 @@ class RunState(BaseModel):
     findings: list[Finding] = Field(default_factory=list)
     best_version: int | None = None
     stage: str = "init"
+
+
+# ---------- research ----------
+
+class ResearchItem(BaseModel):
+    id: str
+    kind: str
+    text: str
+    where: str
+    value: float | None = None
+    unit: str | None = None
+    source: str | None = None    # set when one job covers several sources
+
+
+class ResearchOutput(BaseModel):
+    source: str
+    title: str
+    summary: str = ""
+    items: list[ResearchItem]
+    sources: list[dict] = Field(default_factory=list)   # extra sources found (web, scout)
+
+
+class ResearchPlan(BaseModel):
+    questions: list[str] = Field(default_factory=list)
+    focus: dict[str, str] = Field(default_factory=dict)
+    gaps: list[str] = Field(default_factory=list)
+
+
+class Source(BaseModel):
+    id: str              # V1, P1, D1, U1 ...
+    type: Literal["video", "paper", "diagram", "web", "patent"]
+    title: str
+    url_or_file: str
+    local: bool          # True if url_or_file is a local path

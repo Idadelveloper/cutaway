@@ -150,6 +150,31 @@ def text_part(text: str) -> dict:
     return {"type": "text", "text": text}
 
 
+INLINE_LIMIT = 15 * 1024 * 1024
+_uploaded: dict[str, str] = {}
+
+
+async def media_part(path: str | Path) -> dict:
+    """Content part for a local file: inline if small, else uploaded via the Files API (uri)."""
+    path = Path(path)
+    if path.stat().st_size <= INLINE_LIMIT:
+        return file_part(path)
+    mime = {"mp4": "video/mp4", "mov": "video/quicktime", "webm": "video/webm", "pdf": "application/pdf"}[path.suffix.lower().lstrip(".")]
+    kind = "document" if mime == "application/pdf" else "video"
+    if config.FAKE:  # never upload in fake mode; hash only the path
+        return {"type": kind, "mime_type": mime, "uri": f"fake://{path.name}"}
+    key = f"{path}:{path.stat().st_mtime}"
+    if key not in _uploaded:
+        f = await client().aio.files.upload(file=str(path), config={"mime_type": mime, "display_name": path.name})
+        while str(getattr(f.state, "value", f.state)) == "PROCESSING":
+            await asyncio.sleep(3)
+            f = await client().aio.files.get(name=f.name)
+        if str(getattr(f.state, "value", f.state)) == "FAILED":
+            raise RuntimeError(f"upload of {path} failed")
+        _uploaded[key] = f.uri
+    return {"type": kind, "mime_type": mime, "uri": _uploaded[key]}
+
+
 # ---------- core call ----------
 
 async def call(
@@ -267,10 +292,15 @@ def parse_json(text: str) -> Any:
         raise
 
 
-async def call_model(model_cls: Type[T], *, stage: str, use_schema: bool = False, **kw) -> tuple[T, Result]:
-    """Call and validate the output against a pydantic model; retry once with the error."""
-    schema = model_cls.model_json_schema() if use_schema else None
-    res = await call(stage=stage, json_schema=schema, json_mode=not use_schema, **kw)
+async def call_model(model_cls: Type[T], *, stage: str, use_schema: bool = False,
+                     response_json: bool = True, **kw) -> tuple[T, Result]:
+    """Call and validate the output against a pydantic model; retry once with the error.
+
+    response_json=False skips response_format (e.g. with tools or agents); the prompt must ask for JSON.
+    """
+    schema = model_cls.model_json_schema() if (use_schema and response_json) else None
+    jm = response_json and not use_schema
+    res = await call(stage=stage, json_schema=schema, json_mode=jm, **kw)
     try:
         return model_cls.model_validate(parse_json(res.text)), res
     except (ValidationError, json.JSONDecodeError, ValueError) as e:
@@ -285,7 +315,11 @@ async def call_model(model_cls: Type[T], *, stage: str, use_schema: bool = False
             kw2["input"] = fix
         else:
             kw2["input"] = [text_part(fix)] + (kw["input"] if isinstance(kw["input"], list) else [text_part(str(kw["input"]))])
-        res2 = await call(stage=stage + "_retry", json_schema=schema, json_mode=not use_schema, **kw2)
+        if kw.get("agent"):  # agents can't continue via previous_interaction_id reliably; re-ask with Flash
+            kw2 = {"model": config.FLASH, "thinking": "low", "run_id": kw.get("run_id"),
+                   "input": fix + "\n\nPrevious output:\n" + res.text[:200000]}
+            jm = True
+        res2 = await call(stage=stage + "_retry", json_schema=schema, json_mode=jm, **kw2)
         return model_cls.model_validate(parse_json(res2.text)), res2
 
 

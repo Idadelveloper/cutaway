@@ -14,7 +14,7 @@ RUNS_DIR = ROOT / "runs"
 TOPICS_DIR = ROOT / "topics"
 SOURCES_DIR = ROOT / "sources"
 PROMPTS_DIR = ROOT / "cutaway" / "prompts"
-FIXTURES_DIR = ROOT / "fixtures"
+FIXTURES_DIR = Path(os.environ.get("CUTAWAY_FIXTURES", ROOT / "fixtures"))
 STYLE_PATH = ROOT / "style" / "STYLE.md"
 CONTRACT_PATH = ROOT / "cutaway" / "harness" / "contract.md"
 
@@ -46,9 +46,23 @@ def load_topic(name: str) -> dict:
     return topic
 
 
-def load_prompt(name: str, **values) -> str:
+def load_prompt(name: str, /, **values) -> str:
     """Load prompts/<name>.md and fill {{key}} placeholders."""
     text = (PROMPTS_DIR / f"{name}.md").read_text()
     for k, v in values.items():
         text = text.replace("{{" + k + "}}", str(v))
     return text
+
+# Shared palette (names used in spec entity.color; hex used by STYLE.md and the builder)
+PALETTE = {
+    "grey": "#c9ccd1",      # passive parts
+    "ink": "#22252a",       # outlines, text
+    "noise": "#e0533d",     # incoming noise (red-orange)
+    "anti": "#2f7de1",      # anti-noise (blue)
+    "total": "#7b4fd6",     # what reaches the ear (violet)
+    "mic": "#1fa37a",       # microphones (green)
+    "chip": "#e3a21a",      # processing chip (amber)
+    "speaker": "#d64f9a",   # speaker/driver (magenta)
+    "air": "#8fb8de",       # air particles (light blue)
+    "padding": "#9c7a5b",   # passive padding (brown)
+}

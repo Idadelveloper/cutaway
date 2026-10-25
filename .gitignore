@@ -8,3 +8,4 @@ sources/**/*.mp4
 sources/**/*.mov
 sources/**/*.webm
 sources/**/*.pdf
+sources/**/_downloads/
