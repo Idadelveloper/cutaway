@@ -5,15 +5,14 @@
   *.png|*.jpg|*.jpeg|*.webp -> diagram D1 ...
   urls.txt (one per line, '#' comments, optional 'title | url'):
      youtube/youtu.be/vimeo or .mp4 -> video
-     .pdf or arxiv/patents          -> paper (downloaded to sources/<topic>/_downloads/)
-     anything else                  -> web page U1 ... (read with the URL context tool)
+     .pdf or arxiv/patents          -> paper
+     anything else                  -> web
+Seeds are merged with discovered sources; ids are reassigned after the merge.
 """
 from __future__ import annotations
 
 import re
 from pathlib import Path
-
-import httpx
 
 from .schemas import Source
 
@@ -58,15 +57,3 @@ def discover(sources_dir: str | Path) -> list[Source]:
                 out.append(Source(id=nid("U"), type="web", title=title, url_or_file=url, local=False))
     return out
 
-
-def download_pdf(src: Source, sources_dir: str | Path) -> Path:
-    """Fetch a remote PDF once into sources/<topic>/_downloads/<id>.pdf."""
-    dl = Path(sources_dir) / "_downloads"
-    dl.mkdir(parents=True, exist_ok=True)
-    path = dl / f"{src.id}.pdf"
-    if not path.exists():
-        r = httpx.get(src.url_or_file, follow_redirects=True, timeout=120,
-                      headers={"User-Agent": "Mozilla/5.0 (cutaway research)"})
-        r.raise_for_status()
-        path.write_bytes(r.content)
-    return path

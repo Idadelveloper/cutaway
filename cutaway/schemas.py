@@ -7,8 +7,9 @@ from pydantic import BaseModel, Field
 
 
 class Citation(BaseModel):
-    source: str          # e.g. "S1", "V2"
+    source: str          # e.g. "P1", "V2"
     where: str           # "p.4", "fig.2", "07:42"
+    quote: str           # verbatim snippet (<= 20 words) that must appear in the stored source text
 
 
 class Entity(BaseModel):
@@ -61,7 +62,7 @@ class Spec(BaseModel):
 
 class Finding(BaseModel):
     id: str
-    layer: Literal["fidelity", "law", "interaction", "watched", "contract"]
+    layer: Literal["fidelity", "law", "interaction", "watched", "contract", "citation"]
     severity: Literal["high", "medium", "low"]
     figure: str | None = None
     time: str | None = None
@@ -114,7 +115,8 @@ class ResearchOutput(BaseModel):
     title: str
     summary: str = ""
     items: list[ResearchItem]
-    sources: list[dict] = Field(default_factory=list)   # extra sources found (web, scout)
+    duration_s: float | None = None     # videos: length watched
+    transcript: str | None = None       # videos: verbatim speech, stored as the source text
 
 
 class ResearchPlan(BaseModel):
@@ -123,9 +125,41 @@ class ResearchPlan(BaseModel):
     gaps: list[str] = Field(default_factory=list)
 
 
+SourceType = Literal["paper", "patent", "standard", "manufacturer", "article", "blog", "video", "diagram", "web"]
+
+# Lower is better. Primary/technical sources first.
+SOURCE_RANK = {"paper": 1, "patent": 1, "standard": 1, "manufacturer": 1, "diagram": 1,
+               "article": 2, "video": 2, "web": 3, "blog": 3}
+SOURCE_PREFIX = {"paper": "P", "patent": "T", "standard": "S", "manufacturer": "M", "article": "A",
+                 "blog": "B", "video": "V", "diagram": "D", "web": "W"}
+
+
 class Source(BaseModel):
-    id: str              # V1, P1, D1, U1 ...
-    type: Literal["video", "paper", "diagram", "web", "patent"]
+    id: str = ""         # assigned after merge: P1, T1, S1, M1, A1, B1, V1, D1, W1
+    type: SourceType
     title: str
     url_or_file: str
-    local: bool          # True if url_or_file is a local path
+    local: bool = False  # True if url_or_file is a local path
+    date: str | None = None
+    publisher: str | None = None
+    found_by: list[str] = Field(default_factory=list)   # seed | search | deep_research | scout
+    rank: int = 3
+    status: str = "pending"   # ok | skipped
+    skip_reason: str | None = None
+    chars: int = 0
+    text_path: str | None = None
+
+
+class DiscoveredSource(BaseModel):
+    title: str
+    url: str
+    type: SourceType = "web"
+    date: str | None = None
+    publisher: str | None = None
+    why: str | None = None
+    text: str | None = None   # SourceScout returns extracted text
+
+
+class DiscoveryOutput(BaseModel):
+    sources: list[DiscoveredSource] = Field(default_factory=list)
+    skipped: list[dict] = Field(default_factory=list)   # {url, reason}

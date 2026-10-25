@@ -5,6 +5,8 @@ smoke:
 	$(PY) scripts/smoke_api.py
 research:
 	$(PY) scripts/run_topic.py $(TOPIC) --until spec
+research-fresh:
+	$(PY) scripts/run_topic.py $(TOPIC) --until spec --fresh-research
 build:
 	$(PY) scripts/run_topic.py $(TOPIC) --until build
 loop:
@@ -16,4 +18,4 @@ baselines:
 test:
 	$(PY) -m pytest -q tests
 
-.PHONY: smoke research build loop serve baselines test
+.PHONY: smoke research research-fresh build loop serve baselines test

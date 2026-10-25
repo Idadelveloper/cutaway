@@ -1,14 +1,13 @@
-Convert the research report below into structured items. Each URL cited in the report becomes a source with id W1, W2, ... Keep only facts the report attributes to a URL.
+Extract every source the research report below cites or lists. Keep the exact URLs.
 
 Report:
 {{report}}
 
-Output JSON:
+Output a single JSON object only:
 {
-  "source": "W",
-  "title": "Deep Research report",
-  "summary": "...",
-  "sources": [{"id": "W1", "title": "...", "url": "..."}],
-  "items": [{"id": "W1-1", "kind": "number|claim|equation|entity", "text": "...", "where": "url section or quote location", "value": null, "unit": null, "source": "W1"}]
+  "sources": [
+    {"title": "...", "url": "https://...", "type": "paper|patent|standard|manufacturer|article|blog|video",
+     "date": "... or null", "publisher": "... or null", "why": "what the report used it for"}
+  ],
+  "skipped": []
 }
-Output a single JSON object only.

@@ -11,8 +11,15 @@ Figure count: between {{fig_min}} and {{fig_max}} (the hero counts as F1).
 Every id you cite must be one of these:
 {{sources}}
 
-## Research (JSON from each research job)
-{{research}}
+## Source texts
+Full extracted text of every source, ranked (rank 1 = paper/patent/standard/manufacturer, 2 = article/video, 3 = blog/other). Prefer rank-1 sources when sources disagree.
+{{source_texts}}
+
+## Video analyses (timestamped facts and comparison moments; transcripts are in the source texts above)
+{{video_research}}
+
+## Diagram readings
+{{diagram_research}}
 
 ## Law checks available
 Each law you list must use one of these check names, with params filled from cited sources (keep the defaults when no source gives a better value):
@@ -33,10 +40,10 @@ A single JSON object, no prose, no code fences:
   "entities": [
     {"id": "snake_case", "kind": "e.g. microphone|speaker|chip|wave|particle_field|ear_cup|padding|ear_canal",
      "description": "...", "params": {"diameter_mm": 40, ...}, "color": "<palette name>",
-     "cite": [{"source": "<id>", "where": "p.4 | fig.2 | 07:42"}]}
+     "cite": [{"source": "<id>", "where": "p.4 | fig.2 | 07:42", "quote": "verbatim snippet, <= 20 words"}]}
   ],
   "laws": [
-    {"id": "L1", "text": "...", "check": "<check name>", "params": {...}, "cite": [{"source": "...", "where": "..."}]}
+    {"id": "L1", "text": "...", "check": "<check name>", "params": {...}, "cite": [{"source": "...", "where": "...", "quote": "..."}]}
   ],
   "video_facts": [
     {"id": "VF1", "text": "...", "source": "<video id>", "time": "mm:ss", "kind": "motion|claim|number"}
@@ -48,13 +55,14 @@ A single JSON object, no prose, no code fences:
      "probes": ["probe names this figure must expose"],
      "laws": ["law ids that must hold in this figure"],
      "compare_with": ["VideoFact ids or diagram refs (e.g. 'D1 top') to compare the animation against"],
-     "cite": [{"source": "...", "where": "..."}]}
+     "cite": [{"source": "...", "where": "...", "quote": "..."}]}
   ],
-  "sources": [{"id": "...", "type": "video|paper|diagram|web|patent", "title": "...", "url_or_file": "..."}],
+  "sources": [{"id": "...", "type": "...", "title": "...", "url_or_file": "..."}]  (copy the entries you cite from the source list),
   "conflicts": [{"fact": "...", "values": ["value (source)", ...], "chosen": "...", "why": "..."}]
 }
 
 Requirements:
+- Every citation has a "quote": a verbatim snippet of 20 words or fewer copied exactly from that source's text above (for videos, from the transcript). Code checks that each quote appears in the stored text; paraphrased or invented quotes fail.
 - Every entity, law and figure has at least one citation; every video fact comes from a video source with a timestamp.
 - Every number in params comes from a cited source. If the sources don't give a number you need for drawing (e.g. a size), choose a plausible value and add it to "conflicts" with values ["none in sources"] and why you chose it.
 - Every figure except purely structural ones has at least one control that changes the physics (frequency, delay, amplitude, mic on/off, mode), not just the camera.

@@ -9,3 +9,4 @@ sources/**/*.mov
 sources/**/*.webm
 sources/**/*.pdf
 sources/**/_downloads/
+cache/
