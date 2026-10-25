@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,6 +19,7 @@ from . import config
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
 MIN_CHARS = 800
+logging.getLogger("pypdf").setLevel(logging.ERROR)
 PAYWALL = re.compile(
     r"(subscribe to (continue|read)|purchase (this|the) article|access denied|are you a robot|captcha|"
     r"log ?in to (continue|view)|institutional access|buy this article|enable javascript and cookies)", re.I)

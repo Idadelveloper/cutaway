@@ -1,12 +1,36 @@
+# secrets
 .env
+.env.*
+!.env.example
+
+# python
 .venv/
-runs/
 __pycache__/
 *.pyc
-.DS_Store
+.pytest_cache/
+
+# pipeline outputs (generated explainers, clips, traces, call logs)
+runs/
+*.log
+
+# research cache and recorded responses: contain full third-party texts
+# (fetched pages/PDFs, scout extractions, video transcripts); local only
+cache/
+fixtures/
+
+# seed sources: keep urls.txt, ignore third-party media and documents
 sources/**/*.mp4
 sources/**/*.mov
 sources/**/*.webm
 sources/**/*.pdf
+sources/**/*.png
+sources/**/*.jpg
+sources/**/*.jpeg
+sources/**/*.webp
+sources/**/*.gif
 sources/**/_downloads/
-cache/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

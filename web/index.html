@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cutaway</title>
+<style>
+  :root { --ink:#22252a; --muted:#6b7078; --line:#e3e5e8; --accent:#2f7de1; --bad:#e0533d; --ok:#1fa37a; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; color:var(--ink); background:#fff; }
+  main { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 32px 0 12px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .card { border:1px solid var(--line); border-radius:10px; padding:18px; }
+  label { display:block; font-weight:600; font-size:14px; margin: 12px 0 4px; }
+  input[type=text], select, textarea { width:100%; font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:6px; }
+  textarea { min-height: 80px; font-size: 14px; }
+  button { font:inherit; font-weight:600; padding:9px 16px; border:0; border-radius:6px; background:var(--ink); color:#fff; cursor:pointer; margin-top:14px; }
+  button:disabled { opacity:.4; cursor:default; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px; background:#f1f2f4; }
+  .pill.run { background:#e8f0fc; color:var(--accent); } .pill.err { background:#fdecea; color:var(--bad); } .pill.ok { background:#e6f6f0; color:var(--ok); }
+  #status dl { display:grid; grid-template-columns:max-content 1fr; gap:4px 16px; margin:0; }
+  #status dt { color:var(--muted); font-size:14px; } #status dd { margin:0; word-break: break-word; }
+  #log { height: 280px; overflow:auto; font: 12px/1.45 ui-monospace, Menlo, monospace; background:#fafafa; border:1px solid var(--line); border-radius:6px; padding:8px; white-space:pre-wrap; }
+  #log .error { color: var(--bad); } #log .finding { color: #b06a00; } #log .stage { font-weight:700; }
+  table { border-collapse:collapse; width:100%; font-size:13px; } th, td { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  .scroll { overflow-x:auto; }
+  #runs li { margin: 4px 0; } a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Cutaway</h1>
+  <p class="sub">Research a concept from real sources, generate an interactive 3D explainer, then render, measure, watch and fix it until the checks pass.</p>
+
+  <div class="grid">
+    <form id="start" class="card">
+      <h2 style="margin-top:0">New run</h2>
+      <label for="topic">Topic</label>
+      <select id="topic" name="topic"></select>
+      <label for="urls">Extra source URLs (optional, one per line, "title | url" allowed)</label>
+      <textarea id="urls" name="urls" placeholder="https://www.youtube.com/watch?v=...&#10;https://arxiv.org/pdf/..."></textarea>
+      <label for="files">Extra source files (optional: PDFs, images, MP4s)</label>
+      <input id="files" name="files" type="file" multiple>
+      <label class="row" style="font-weight:400"><input type="checkbox" name="fresh_research" value="true"> Redo research (ignore cache)</label>
+      <button id="go" type="submit">Start run</button>
+    </form>
+
+    <div class="card">
+      <h2 style="margin-top:0">Runs</h2>
+      <ul id="runs" style="padding-left:18px;margin:0"></ul>
+    </div>
+  </div>
+
+  <section id="status" hidden>
+    <h2>Progress <span id="state" class="pill">…</span></h2>
+    <div class="card">
+      <dl>
+        <dt>Run</dt><dd id="rid"></dd>
+        <dt>Stage</dt><dd id="stage">–</dd>
+        <dt>Agent</dt><dd id="agent">–</dd>
+        <dt>Elapsed</dt><dd id="elapsed">–</dd>
+        <dt>Latest finding</dt><dd id="finding">–</dd>
+        <dt>Explainer</dt><dd id="link">not ready yet</dd>
+      </dl>
+    </div>
+    <h2>Findings per version</h2>
+    <div class="scroll"><table id="table"><tr><td>none yet</td></tr></table></div>
+    <h2>Event log</h2>
+    <div id="log"></div>
+
+    <form id="change" class="card" style="margin-top:24px">
+      <h2 style="margin-top:0">Change request</h2>
+      <p class="sub" style="margin:0">Applied by the Fixer as a requirement, then re-rendered and re-checked. Only accepted if the checks pass.</p>
+      <label for="ctext">What should change?</label>
+      <input id="ctext" type="text" placeholder="make the chip 1 ms slower">
+      <button id="cgo" type="submit">Submit change</button>
+    </form>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let es = null, runId = null, t0 = null, timer = null;
+
+async function loadTopics() {
+  const ts = await (await fetch('/api/topics')).json();
+  $('topic').innerHTML = ts.map(t => `<option>${t}</option>`).join('');
+}
+async function loadRuns() {
+  const rs = await (await fetch('/api/runs')).json();
+  $('runs').innerHTML = rs.slice(0, 12).map(r =>
+    `<li><a href="#" data-run="${r.run_id}">${r.run_id}</a> <span class="pill ${r.running ? 'run' : r.published ? 'ok' : ''}">${r.running ? 'running' : r.published ? 'published' : (r.stage || '')}</span></li>`
+  ).join('') || '<li>none yet</li>';
+}
+$('runs').addEventListener('click', (e) => { const a = e.target.closest('a[data-run]'); if (a) { e.preventDefault(); watch(a.dataset.run); } });
+
+function fmt(s) { const m = Math.floor(s / 60); return `${m}m ${Math.floor(s % 60)}s`; }
+function log(ev) {
+  const d = document.createElement('div');
+  d.className = ev.kind;
+  const ts = new Date(ev.ts * 1000).toLocaleTimeString();
+  d.textContent = `${ts} [${ev.kind}] ${ev.msg || ev.stage || ev.agent || ''}`;
+  $('log').appendChild(d);
+  $('log').scrollTop = $('log').scrollHeight;
+}
+async function refresh() {
+  const s = await (await fetch(`/api/runs/${runId}`)).json();
+  if (s.explainer) $('link').innerHTML = `<a href="${s.explainer}" target="_blank">${s.explainer}</a>`;
+  const L = ['contract', 'law', 'interaction', 'fidelity', 'watched'];
+  if (s.table.length) $('table').innerHTML = '<tr><th>version</th>' + L.map(l => `<th>${l}</th>`).join('') + '<th>high</th><th>weighted</th></tr>' +
+    s.table.map(r => `<tr><td>${r.version}${s.best && r.version === 'v' + s.best ? ' ★' : ''}</td>` +
+      L.map(l => { const x = r.layers[l]; return `<td>${x.high + x.medium + x.low} (${x.high}H)</td>`; }).join('') +
+      `<td>${r.high}</td><td>${r.weighted}</td></tr>`).join('');
+  $('state').textContent = s.running ? 'running' : 'idle';
+  $('state').className = 'pill ' + (s.running ? 'run' : 'ok');
+  $('cgo').disabled = s.running || !s.version;
+}
+function watch(id) {
+  if (es) es.close();
+  runId = id; t0 = null; $('log').innerHTML = ''; $('status').hidden = false; $('rid').textContent = id;
+  $('finding').textContent = '–'; $('agent').textContent = '–'; $('link').textContent = 'not ready yet';
+  es = new EventSource(`/api/runs/${id}/events`);
+  es.onmessage = (m) => {
+    const ev = JSON.parse(m.data);
+    t0 = t0 || ev.ts;
+    log(ev);
+    if (ev.kind === 'stage') $('stage').textContent = ev.msg || ev.stage;
+    if (ev.kind === 'agent' || ev.kind === 'call') $('agent').textContent = ev.msg || ev.agent;
+    if (ev.kind === 'finding') $('finding').textContent = ev.msg;
+    if (['stage', 'done'].includes(ev.kind)) { refresh(); loadRuns(); }
+    if (ev.kind === 'done') { $('elapsed').textContent = fmt(ev.ts - t0) + ' (finished)'; clearInterval(timer); timer = null; }
+  };
+  clearInterval(timer);
+  timer = setInterval(() => { if (t0) $('elapsed').textContent = fmt(Date.now() / 1000 - t0); }, 1000);
+  refresh();
+}
+$('start').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('go').disabled = true;
+  try {
+    const r = await fetch('/api/runs', { method: 'POST', body: new FormData($('start')) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || r.status);
+    watch(j.run_id); loadRuns();
+  } catch (err) { log({ ts: Date.now() / 1000, kind: 'error', msg: 'could not start: ' + err.message }); $('status').hidden = false; }
+  $('go').disabled = false;
+});
+$('change').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = $('ctext').value.trim();
+  if (!text || !runId) return;
+  $('cgo').disabled = true;
+  const r = await fetch(`/api/runs/${runId}/change`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+  const j = await r.json();
+  if (!r.ok) { log({ ts: Date.now() / 1000, kind: 'error', msg: 'change refused: ' + (j.detail || r.status) }); $('cgo').disabled = false; }
+  else { $('ctext').value = ''; refresh(); }
+});
+loadTopics(); loadRuns();
+const h = location.hash.slice(1); if (h) watch(h);
+</script>
+</body>
+</html>

@@ -72,6 +72,7 @@ class Finding(BaseModel):
 
 
 class BuildOutput(BaseModel):
+    plan: str = ""
     files: dict[str, str]
 
 

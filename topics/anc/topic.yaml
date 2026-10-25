@@ -60,3 +60,21 @@ probes:
   - wavelength_m
   - delay_s
   - residual_ratio
+
+# Requirements for model.js (what the law checks measure). Use cited spec values for constants.
+model_notes: |
+  - Noise at the ear: p_noise_ear(t) = A * sin(2*pi*f*t), A = amplitude control (default 1).
+  - Anti-noise at the ear: p_anti_ear(t) = -g * A * sin(2*pi*f*(t - tau)) when ANC is on, else 0.
+    tau = delay_s control (processing + acoustic latency), g = anti-noise gain (default 1).
+  - p_total_ear = p_noise_ear + p_anti_ear exactly (computed as that sum, no smoothing).
+  - Passive padding attenuates p_noise_ear by a frequency-dependent factor from the spec (more at high f).
+  - Feedback (inner) mic: reduces the residual further by a loop gain factor from the spec, below its cutoff.
+  - Transparency mode: anti-noise off, and the outer mic signal is played through (p_total ~ unattenuated noise).
+  - Wavelength: wavelength_m = c / f with c = 343 m/s (or the spec's cited value); expose frequency_hz and wavelength_m.
+  - Air particles: displacement of particle i = d_max * sin(2*pi*f*t - k*x_i), k = 2*pi/wavelength; rest positions fixed.
+    Expose particle_disp_max (max |displacement| this frame) and particle_mean_offset (mean displacement across particles).
+  - residual_ratio = RMS(p_total_ear)/RMS(p_noise_ear) over the last full period (analytic is fine).
+  - Use simulated time t from advance(dt) only; at audio frequencies show the wave slowed down with a visible
+    "time slowed x N" factor, but compute probes at the true physical frequency f and simulated time t / N.
+  - Expose t_phys_s (the physical time the probes were computed at) and time_scale (N) as probes, so checks can
+    reconstruct the waveform exactly.

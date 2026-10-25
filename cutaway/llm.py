@@ -240,7 +240,7 @@ async def call(
     if background:
         kwargs["background"] = True
     if timeout is None:
-        timeout = config.TIMEOUT_HIGH if (thinking == "high" or background) else config.TIMEOUT_DEFAULT
+        timeout = config.TIMEOUT_HIGH if (thinking == "high" or background or tools) else config.TIMEOUT_DEFAULT
 
     aio = client().aio.interactions
     t0 = time.time()

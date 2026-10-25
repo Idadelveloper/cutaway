@@ -24,3 +24,11 @@
   Fetched pages are also saved as fixtures in `fixtures/fetch/`, so fake mode never hits the network.
 - A failing research job is logged and skipped; the run only stops if every job fails.
 - Tests point `CUTAWAY_FIXTURES`/`config.FIXTURES_DIR` at a temp dir with synthetic fixtures; real fixtures go in `fixtures/` once the API runs.
+- Argon with google_search/url_context can take >5 min: tool calls get the 20 min timeout, and the search discoverer runs in background mode.
+- ADK 2.13 warns that `SequentialAgent` is deprecated in favour of `Workflow`; it still works and is what we use.
+  Parallelism lives inside stages (asyncio.gather), so the root is a plain sequence of custom `StageAgent`s.
+- `save_json` serializes nested pydantic models (lists of Findings) via `default=model_dump`; plain `default=str` silently wrote strings.
+- ResearchGate and some publishers return 403 to plain HTTP clients; those sources are skipped and logged (SourceScout can sometimes get them).
+- Reference videos in the watched review use `{"type": "video", "uri": ..., "processing": {"start_offset": "60s", "end_offset": "90s"}}`
+  to send only the cited moment.
+- Render harness: ~70 ms per captured frame; 4 pages in parallel; raw frames deleted after ffmpeg, keyframes kept.

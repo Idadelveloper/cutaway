@@ -58,7 +58,7 @@ async def search_discoverer(state: RunState) -> DiscoveryOutput:
     # Tool syntax from google-genai 2.33.0 types: GoogleSearch type "google_search", UrlContext type "url_context".
     out, _ = await llm.call_model(DiscoveryOutput, stage="discover_search", model=config.ARGON, thinking="medium",
                                   input=prompt, tools=[{"type": "google_search"}, {"type": "url_context"}],
-                                  response_json=False, run_id=state.run_id)
+                                  response_json=False, background=True, run_id=state.run_id)
     return out
 
 

@@ -26,9 +26,10 @@ def run_dir(state: RunState) -> Path:
 
 def save_json(path: Path, data) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    if hasattr(data, "model_dump"):
-        data = data.model_dump(mode="json")
-    path.write_text(json.dumps(data, indent=2, default=str))
+
+    def plain(o):
+        return o.model_dump(mode="json") if hasattr(o, "model_dump") else str(o)
+    path.write_text(json.dumps(data, indent=2, default=plain))
     return path
 
 
