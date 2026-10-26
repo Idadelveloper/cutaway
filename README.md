@@ -177,6 +177,20 @@ v4                0 (0H)        3 (3H)        0 (0H)        7 (7H)       17 (8H)
 v5                0 (0H)        0 (0H)        0 (0H)        0 (0H)        3 (0H)       3     0         4   <- change request: On/Off toggles (accepted, published)
 ```
 
+### More topics: binary search trees and the heart
+
+Both ran end to end without help, with the same pipeline and checks:
+
+```
+run                     time    sources  video   quotes    weighted per version     high per version   published
+20261025-154115-bst     44 min  22       1.5 h   64/64     117 -> 5 -> 37 -> 4      9 -> 1 -> 5 -> 0   v4
+20261025-171009-heart   49 min  26       0.5 h   100/100   245 -> 50 -> 9           11 -> 6 -> 0       v3
+```
+
+- **heart:** v1 had 106 findings (94 interaction, 1 high-severity law failure). Two fix rounds reached 0 high, and the loop stopped on its own.
+- **bst:** the fix from v2 to v3 made things worse (1 → 5 high), so the loop discarded v3, fixed v2 again, and published v4.
+- Across all three topics, every first draft had 9–11 high-severity problems, and every published version has 0.
+
 ### Baselines (same spec ids, same checks)
 
 ```

@@ -1,4 +1,5 @@
-"""Shared Playwright browser setup (headed by default so WebGL uses the GPU on macOS)."""
+"""Shared Playwright browser setup. Headless by default: headed windows that are hidden or in the background
+get requestAnimationFrame throttled on macOS, which stalls Playwright's waits. CUTAWAY_HEADED=1 shows the windows."""
 from __future__ import annotations
 
 import os
@@ -11,7 +12,7 @@ VIEWPORT = {"width": 1280, "height": 900}
 
 @asynccontextmanager
 async def browser():
-    headless = os.environ.get("CUTAWAY_HEADLESS") == "1"
+    headless = os.environ.get("CUTAWAY_HEADED") != "1"
     async with async_playwright() as pw:
         b = await pw.chromium.launch(headless=headless, args=["--ignore-gpu-blocklist", "--enable-webgl"])
         try:

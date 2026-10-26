@@ -33,3 +33,8 @@
   to send only the cited moment.
 - Render harness: ~70 ms per captured frame; 4 pages in parallel; raw frames deleted after ffmpeg, keyframes kept.
 - `make serve` reloads only on changes in cutaway/, server/ and web/. Watching the whole project (runs/, cache/) made the dev server hang while a run was writing files.
+- Playwright runs headless by default (`CUTAWAY_HEADED=1` to watch). Headed Chromium windows that are hidden or in the background on
+  macOS get requestAnimationFrame throttled: `scroll_into_view_if_needed` timed out on every figure and a later launch hung.
+  Headless still renders WebGL. The render harness scrolls with `el.scrollIntoView()` (no actionability wait).
+- Status polls of background interactions (`interactions.get`) retry timeouts, connection errors, 429 and 5xx with backoff; one
+  failed poll used to end a 10-minute job that was still running.

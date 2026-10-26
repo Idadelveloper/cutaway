@@ -177,6 +177,22 @@ async def media_part(path: str | Path) -> dict:
 
 # ---------- core call ----------
 
+POLL_RETRIES = 6
+
+
+async def _poll(aio, inter, run_id, stage):
+    """One status poll of a background interaction. A failed poll doesn't mean the job failed, so
+    timeouts, connection errors, 429 and 5xx are retried with backoff."""
+    from google.genai._gaos.lib.compat_errors import APIConnectionError, InternalServerError, RateLimitError
+    for attempt in range(POLL_RETRIES):
+        try:
+            return await aio.get(inter.id, timeout=60)
+        except (APIConnectionError, InternalServerError, RateLimitError) as e:
+            if attempt == POLL_RETRIES - 1:
+                raise
+            events.emit(run_id, "info", stage=stage, msg=f"{stage}: poll failed ({type(e).__name__}); retrying")
+            await asyncio.sleep(config.POLL_SECONDS * 2 ** attempt)
+
 async def call(
     *,
     stage: str,
@@ -253,7 +269,7 @@ async def call(
                     events.emit(run_id, "info", stage=stage, msg=f"{stage}: {target} {inter.status} ({inter.id})")
                     last_status = inter.status
                 await asyncio.sleep(config.POLL_SECONDS)
-                inter = await aio.get(inter.id, timeout=60)
+                inter = await _poll(aio, inter, run_id, stage)
         result = Result(text=inter.output_text or "", id=inter.id, usage=_usage_dict(inter.usage),
                         duration=time.time() - t0, status=str(inter.status))
         if inter.status not in ("completed",):

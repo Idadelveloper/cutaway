@@ -57,7 +57,7 @@ def sweeps_for(fig) -> list[tuple[str, dict | None]]:
 
 async def render_figure(page, fig, out: dict[str, Path], logs: list[dict], run_id: str | None) -> list[dict]:
     el = page.locator(f'figure[data-figure="{fig.id}"], #fig-{fig.id}').first
-    await el.scroll_into_view_if_needed()
+    await el.evaluate("e => e.scrollIntoView({block: 'center'})")  # no actionability wait
     await page.evaluate("window.__cutaway.pauseAll()")
     await page.wait_for_timeout(100)
     results = []
@@ -69,7 +69,7 @@ async def render_figure(page, fig, out: dict[str, Path], logs: list[dict], run_i
         fdir.mkdir(parents=True)
         log_start = len(logs)
         await page.evaluate(f"window.__cutaway.figure({json.dumps(fig.id)}).reset()")
-        await el.scroll_into_view_if_needed()
+        await el.evaluate("e => e.scrollIntoView({block: 'center'})")  # no actionability wait
         box = await el.bounding_box()
         frames, ms = [], []
         for i in range(FRAMES):
